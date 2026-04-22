@@ -45,11 +45,17 @@
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
-            margin-bottom: 2rem;
-            padding: 1rem 0;
+            margin-bottom: 0.5rem;
+            padding: 1rem 0 0 0;
         }
 
-        .controls-top { display: flex; gap: 0.5rem; }
+        .subtitle {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            font-size: 1.1rem;
+        }
+
+        .controls-top { display: flex; gap: 0.5rem; align-items: flex-start; }
 
         .card { 
             background: var(--card); 
@@ -59,6 +65,7 @@
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
             margin-bottom: 1.5rem; 
             box-sizing: border-box;
+            transition: opacity 0.3s, transform 0.3s;
         }
 
         h1, h3 { margin-top: 0; }
@@ -97,13 +104,13 @@
         }
 
         .lang-select {
-            padding: 0.4rem 1.8rem 0.4rem 0.8rem; /* Extra right padding for arrow */
+            padding: 0.4rem 1.8rem 0.4rem 0.8rem;
             border-radius: 0.4rem;
             background: var(--card);
             border: 1px solid var(--border);
             color: var(--text);
             cursor: pointer;
-            appearance: auto; /* Ensure browser arrow renders well or use custom arrow */
+            appearance: auto;
         }
 
         .theme-toggle {
@@ -125,7 +132,7 @@
             font-weight: 600; 
             width: 100%;
             transition: background 0.2s;
-            box-sizing: border-box; /* Fix overflow */
+            box-sizing: border-box;
             display: block;
             text-align: center;
         }
@@ -134,12 +141,13 @@
 
         #drop-zone { 
             border: 2px dashed var(--border); 
-            padding: 3rem 2rem; 
+            padding: 4rem 2rem; 
             text-align: center; 
             border-radius: 1rem; 
             cursor: pointer;
             transition: border-color 0.2s, background 0.2s;
         }
+        #drop-zone p { margin: 0; font-size: 1.1rem; font-weight: 500; }
         #drop-zone.active { border-color: var(--primary); background: rgba(59, 130, 246, 0.1); }
 
         #video-thumbnail {
@@ -200,6 +208,8 @@
             </div>
         </header>
         
+        <p class="subtitle" id="t-subtitle">Automatically analyze and cut out silent pauses from your videos.</p>
+        
         <div class="card" id="upload-section">
             <div id="drop-zone">
                 <p id="t-drop-text">Drag & drop video file here or click to select</p>
@@ -212,9 +222,15 @@
                     <strong id="t-selected">Selected:</strong> <span id="filename"></span>
                 </div>
             </div>
+
+            <!-- Upload Progress placed inside upload section for clean layout -->
+            <div id="upload-progress-container" style="display: none; margin-top: 1.5rem;">
+                <p id="upload-status-text" style="margin: 0 0 0.5rem 0; font-weight: 500;">Uploading...</p>
+                <div class="progress-bar"><div class="progress-fill" id="upload-progress-fill"></div></div>
+            </div>
         </div>
 
-        <div class="card" id="settings-section" style="opacity: 0.5; pointer-events: none;">
+        <div class="card" id="settings-section" style="display: none;">
             <h3 id="t-settings">Settings</h3>
             <div class="form-group">
                 <label id="t-label-preset">Preset</label>
@@ -281,14 +297,14 @@
 
         <div class="card" id="status-section" style="display: none;">
             <h3 id="t-status-title">Processing...</h3>
-            <p id="status-text">Uploading...</p>
+            <p id="status-text" style="font-weight: 500;">Initializing...</p>
             <div class="progress-container" style="display: block;">
                 <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
             </div>
             <div class="stats" id="stats-content"></div>
             <div id="result-actions" style="display: none;">
                 <a id="download-link" class="btn" style="text-decoration: none;">Download Result</a>
-                <button class="btn" style="background: var(--border); color: var(--text);" onclick="location.reload()" id="t-btn-another">Process Another</button>
+                <button class="btn" style="background: var(--border); color: var(--text);" onclick="location.reload()" id="t-btn-another">Process Another File</button>
             </div>
         </div>
     </div>
@@ -296,6 +312,7 @@
     <script>
         const translations = {
             en: {
+                subtitle: "Automatically analyze and cut out silent pauses from your videos.",
                 dropText: "Drag & drop video file here or click to select",
                 selected: "Selected:",
                 settings: "Settings",
@@ -317,15 +334,16 @@
                 sampleDur: "Sample Duration",
                 processBtn: "Cut Silence",
                 statusTitle: "Processing...",
-                anotherBtn: "Process Another",
+                anotherBtn: "Process Another File",
                 uploading: "Uploading...",
                 download: "Download Result",
                 statsTpl: "Original: {orig}s | Final: {final}s | Pauses removed: {count}"
             },
             ru: {
+                subtitle: "Сервис автоматически анализирует видео и вырезает из него долгие паузы и тишину.",
                 dropText: "Перетащите видео сюда или нажмите для выбора",
                 selected: "Выбрано:",
-                settings: "Настройки",
+                settings: "Настройки обработки",
                 preset: "Пресет",
                 custom: "Свой вариант",
                 p_podcast: "Подкаст",
@@ -344,12 +362,13 @@
                 sampleDur: "Длина фрагмента",
                 processBtn: "Вырезать тишину",
                 statusTitle: "Обработка...",
-                anotherBtn: "Обработать еще один",
+                anotherBtn: "Обработать другой файл",
                 uploading: "Загрузка...",
                 download: "Скачать результат",
                 statsTpl: "Было: {orig}с | Стало: {final}с | Удалено пауз: {count}"
             },
             es: {
+                subtitle: "Analiza y corta automáticamente las pausas silenciosas de tus videos.",
                 dropText: "Arrastre el video aquí o haga clic para seleccionar",
                 selected: "Seleccionado:",
                 settings: "Ajustes",
@@ -371,12 +390,13 @@
                 sampleDur: "Duración de la muestra",
                 processBtn: "Cortar silencio",
                 statusTitle: "Procesando...",
-                anotherBtn: "Procesar otro",
+                anotherBtn: "Procesar otro archivo",
                 uploading: "Subiendo...",
                 download: "Descargar resultado",
                 statsTpl: "Original: {orig}s | Final: {final}s | Pausas eliminadas: {count}"
             },
             zh: {
+                subtitle: "自动分析并剪辑视频中的无声停顿。",
                 dropText: "将视频文件拖到此处或点击选择",
                 selected: "已选择:",
                 settings: "设置",
@@ -398,12 +418,13 @@
                 sampleDur: "样本时长",
                 processBtn: "开始剪切",
                 statusTitle: "处理中...",
-                anotherBtn: "处理另一个",
+                anotherBtn: "处理另一个文件",
                 uploading: "上传中...",
                 download: "下载结果",
                 statsTpl: "原始: {orig}秒 | 最终: {final}秒 | 已移除暂停: {count}"
             },
             fr: {
+                subtitle: "Analysez et coupez automatiquement les pauses silencieuses de vos vidéos.",
                 dropText: "Glissez-déposez la vidéo ici ou cliquez pour choisir",
                 selected: "Sélectionné :",
                 settings: "Paramètres",
@@ -425,12 +446,13 @@
                 sampleDur: "Durée de l'échantillon",
                 processBtn: "Couper le silence",
                 statusTitle: "Traitement...",
-                anotherBtn: "En traiter un autre",
+                anotherBtn: "Traiter un autre fichier",
                 uploading: "Téléchargement...",
                 download: "Télécharger le résultat",
                 statsTpl: "Original : {orig}s | Final : {final}s | Pauses supprimées : {count}"
             },
             de: {
+                subtitle: "Analysieren und schneiden Sie automatisch stumme Pausen aus Ihren Videos.",
                 dropText: "Video hierher ziehen oder zum Auswählen klicken",
                 selected: "Ausgewählt:",
                 settings: "Einstellungen",
@@ -452,12 +474,13 @@
                 sampleDur: "Stichprobenlänge",
                 processBtn: "Stille schneiden",
                 statusTitle: "Verarbeitung...",
-                anotherBtn: "Weiteres Video",
+                anotherBtn: "Weitere Datei verarbeiten",
                 uploading: "Hochladen...",
                 download: "Ergebnis herunterladen",
                 statsTpl: "Original: {orig}s | Final: {final}s | Pausen entfernt: {count}"
             },
             pt: {
+                subtitle: "Analise e corte automaticamente as pausas silenciosas de seus vídeos.",
                 dropText: "Arraste o vídeo aqui ou clique para selecionar",
                 selected: "Selecionado:",
                 settings: "Configurações",
@@ -479,12 +502,13 @@
                 sampleDur: "Duração da amostra",
                 processBtn: "Cortar silêncio",
                 statusTitle: "Processando...",
-                anotherBtn: "Processar outro",
+                anotherBtn: "Processar outro arquivo",
                 uploading: "Enviando...",
                 download: "Baixar resultado",
                 statsTpl: "Original: {orig}s | Final: {final}s | Pausas removidas: {count}"
             },
             ja: {
+                subtitle: "動画の無音部分を自動で分析し、カットします。",
                 dropText: "動画ファイルをここにドラッグ＆ドロップするか、クリックして選択",
                 selected: "選択済み:",
                 settings: "設定",
@@ -506,12 +530,13 @@
                 sampleDur: "サンプル時間",
                 processBtn: "無音をカット",
                 statusTitle: "処理中...",
-                anotherBtn: "別の動画を処理",
+                anotherBtn: "別のファイルを処理",
                 uploading: "アップロード中...",
                 download: "結果をダウンロード",
                 statsTpl: "元: {orig}秒 | 完了: {final}秒 | 削除された無音: {count}"
             },
             ko: {
+                subtitle: "동영상의 무음 구간을 자동으로 분석하고 잘라냅니다.",
                 dropText: "비디오 파일을 여기로 드래그하거나 클릭하여 선택",
                 selected: "선택됨:",
                 settings: "설정",
@@ -539,6 +564,7 @@
                 statsTpl: "원본: {orig}초 | 최종: {final}초 | 제거된 구간: {count}"
             },
             ar: {
+                subtitle: "قم بتحليل وقص فترات الصمت من مقاطع الفيديو الخاصة بك تلقائياً.",
                 dropText: "اسحب ملف الفيديو هنا أو انقر للاختيار",
                 selected: "تم اختيار:",
                 settings: "الإعدادات",
@@ -569,13 +595,13 @@
 
         function updateLanguage(lang) {
             const t = translations[lang];
+            document.getElementById('t-subtitle').innerText = t.subtitle;
             document.getElementById('t-drop-text').innerText = t.dropText;
             document.getElementById('t-selected').innerText = t.selected;
             document.getElementById('t-settings').innerText = t.settings;
             document.getElementById('t-label-preset').innerText = t.preset;
             document.getElementById('t-opt-custom').innerText = t.custom;
             
-            // Translate Presets
             if(document.getElementById('t-opt-podcast')) document.getElementById('t-opt-podcast').innerText = t.p_podcast;
             if(document.getElementById('t-opt-interview')) document.getElementById('t-opt-interview').innerText = t.p_interview;
             if(document.getElementById('t-opt-lecture')) document.getElementById('t-opt-lecture').innerText = t.p_lecture;
@@ -634,7 +660,6 @@
         const processBtn = document.getElementById('process-btn');
         let currentJobId = null;
 
-        // Hardcoded presets corresponding to backend
         const presetValues = {
             "podcast": {"threshold": -35, "padding_start": 200, "padding_end": 300},
             "interview": {"threshold": -30, "padding_start": 150, "padding_end": 200},
@@ -646,7 +671,7 @@
             const el = document.getElementById(id);
             if (el) el.oninput = () => {
                 document.getElementById('v-' + id).innerText = el.value;
-                document.getElementById('preset').value = 'custom'; // Custom tweak
+                document.getElementById('preset').value = 'custom';
             };
         });
 
@@ -683,29 +708,28 @@
             const videoNode = document.getElementById('video-thumbnail');
             const fileURL = URL.createObjectURL(file);
             videoNode.src = fileURL;
-            videoNode.currentTime = 1.0; // Seek to 1s to get a frame
+            videoNode.currentTime = 1.0; 
             videoNode.style.display = 'block';
 
             document.getElementById('filename').innerText = file.name;
             document.getElementById('drop-zone').style.display = 'none';
             document.getElementById('file-info').style.display = 'block';
             
+            // Show upload progress UI
+            document.getElementById('upload-progress-container').style.display = 'block';
+            document.getElementById('upload-status-text').innerText = translations[langSelect.value].uploading + ' 0%';
+            
             const formData = new FormData();
             formData.append('file', file);
             
-            statusSection.style.display = 'block';
-            document.getElementById('upload-section').style.opacity = '0.5';
-            document.getElementById('status-text').innerText = translations[langSelect.value].uploading + ' 0%';
-            
-            // Upload via XHR to get exact progress
             const xhr = new XMLHttpRequest();
             xhr.open('POST', '/upload', true);
             
             xhr.upload.onprogress = (e) => {
                 if (e.lengthComputable) {
                     const percentComplete = (e.loaded / e.total) * 100;
-                    document.getElementById('progress-fill').style.width = percentComplete + '%';
-                    document.getElementById('status-text').innerText = translations[langSelect.value].uploading + ' ' + Math.round(percentComplete) + '%';
+                    document.getElementById('upload-progress-fill').style.width = percentComplete + '%';
+                    document.getElementById('upload-status-text').innerText = translations[langSelect.value].uploading + ' ' + Math.round(percentComplete) + '%';
                 }
             };
             
@@ -713,12 +737,16 @@
                 if (xhr.status === 200) {
                     const data = JSON.parse(xhr.responseText);
                     currentJobId = data.job_id;
-                    settingsSection.style.opacity = '1';
-                    settingsSection.style.pointerEvents = 'auto';
-                    document.getElementById('status-text').innerText = 'Ready.';
-                    document.getElementById('progress-fill').style.width = '100%';
+                    
+                    // Hide upload progress, show settings
+                    document.getElementById('upload-progress-container').style.display = 'none';
+                    settingsSection.style.display = 'block';
+                    
+                    // Small scroll to settings
+                    settingsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 } else {
                     alert('Upload failed');
+                    location.reload();
                 }
             };
             
@@ -735,8 +763,9 @@
             formData.append('is_sample', document.getElementById('is_sample').checked);
             formData.append('sample_duration', document.getElementById('sample_duration').value);
 
-            processBtn.disabled = true;
-            settingsSection.style.opacity = '0.5';
+            // Hide settings, show processing
+            settingsSection.style.display = 'none';
+            statusSection.style.display = 'block';
             
             await fetch(`/process/${currentJobId}`, { method: 'POST', body: formData });
             pollStatus();
