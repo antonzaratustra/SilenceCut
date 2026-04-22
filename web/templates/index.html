@@ -6,84 +6,237 @@
     <title>SilenceCut - Auto Silence Removal</title>
     <style>
         :root {
-            --primary: #2563eb;
+            /* Dark Theme (Default) */
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --border: #334155;
+            --input-bg: #0f172a;
+            --success: #22c55e;
+        }
+
+        [data-theme="light"] {
             --bg: #f8fafc;
             --card: #ffffff;
             --text: #1e293b;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --border: #e2e8f0;
+            --input-bg: #ffffff;
         }
-        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; padding: 2rem; }
-        .container { max-width: 800px; margin: 0 auto; }
-        .card { background: var(--card); padding: 2rem; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 2rem; }
-        h1 { margin-top: 0; }
+
+        body { 
+            font-family: system-ui, -apple-system, sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            line-height: 1.5; 
+            padding: 1rem;
+            margin: 0;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .container { max-width: 900px; margin: 0 auto; }
+        
+        header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 2rem;
+            padding: 1rem 0;
+        }
+
+        .controls-top { display: flex; gap: 0.5rem; }
+
+        .card { 
+            background: var(--card); 
+            padding: 1.5rem; 
+            border-radius: 0.75rem; 
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
+            margin-bottom: 1.5rem; 
+        }
+
+        h1, h3 { margin-top: 0; }
+        
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-        .form-group { margin-bottom: 1rem; }
-        label { display: block; font-weight: 500; margin-bottom: 0.25rem; }
-        input[type="range"], input[type="number"], select { width: 100%; }
-        .btn { background: var(--primary); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 0.25rem; cursor: pointer; font-weight: 600; width: 100%; }
-        .btn:disabled { background: #94a3b8; }
-        #drop-zone { border: 2px dashed #cbd5e1; padding: 2rem; text-align: center; border-radius: 0.5rem; cursor: pointer; }
-        #drop-zone.active { border-color: var(--primary); background: #eff6ff; }
+        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+
+        .form-group { margin-bottom: 1.25rem; }
+        
+        label { 
+            display: flex; 
+            justify-content: space-between;
+            font-weight: 600; 
+            margin-bottom: 0.5rem; 
+            font-size: 0.9rem;
+        }
+
+        .label-desc { 
+            display: block; 
+            font-size: 0.8rem; 
+            font-weight: normal; 
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        input[type="range"] { width: 100%; cursor: pointer; }
+        
+        select, input[type="number"] { 
+            width: 100%; 
+            padding: 0.5rem; 
+            border-radius: 0.375rem; 
+            border: 1px solid var(--border);
+            background: var(--input-bg);
+            color: var(--text);
+        }
+
+        .btn { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 0.75rem 1.5rem; 
+            border-radius: 0.5rem; 
+            cursor: pointer; 
+            font-weight: 600; 
+            width: 100%;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: var(--primary-hover); }
+        .btn:disabled { background: #64748b; cursor: not-allowed; }
+
+        #drop-zone { 
+            border: 2px dashed var(--border); 
+            padding: 3rem 2rem; 
+            text-align: center; 
+            border-radius: 1rem; 
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        #drop-zone.active { border-color: var(--primary); background: rgba(59, 130, 246, 0.1); }
+
         .progress-container { margin-top: 1rem; display: none; }
-        .progress-bar { height: 0.5rem; background: #e2e8f0; border-radius: 0.25rem; overflow: hidden; }
+        .progress-bar { height: 0.75rem; background: var(--border); border-radius: 1rem; overflow: hidden; }
         .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
-        .stats { margin-top: 1rem; font-size: 0.875rem; color: #64748b; }
+        
+        .stats { 
+            margin-top: 1rem; 
+            padding: 1rem;
+            background: rgba(0,0,0,0.2);
+            border-radius: 0.5rem;
+            font-size: 0.875rem; 
+        }
+
+        .theme-toggle, .lang-select {
+            padding: 0.4rem;
+            border-radius: 0.4rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            cursor: pointer;
+        }
     </style>
 </head>
-<body>
+<body data-theme="dark">
     <div class="container">
-        <h1>SilenceCut</h1>
+        <header>
+            <h1>SilenceCut</h1>
+            <div class="controls-top">
+                <select id="lang-select" class="lang-select">
+                    <option value="en">English</option>
+                    <option value="ru">Русский</option>
+                    <option value="es">Español</option>
+                    <option value="zh">中文</option>
+                    <option value="fr">Français</option>
+                    <option value="de">Deutsch</option>
+                    <option value="pt">Português</option>
+                    <option value="ja">日本語</option>
+                    <option value="ko">한국어</option>
+                    <option value="ar">العربية</option>
+                </select>
+                <button id="theme-toggle" class="theme-toggle">🌙</button>
+            </div>
+        </header>
         
         <div class="card" id="upload-section">
             <div id="drop-zone">
-                <p>Drag & drop video file here or click to select</p>
+                <p id="t-drop-text">Drag & drop video file here or click to select</p>
                 <input type="file" id="file-input" style="display: none">
             </div>
             <div id="file-info" style="margin-top: 1rem; display: none;">
-                <strong>Selected:</strong> <span id="filename"></span>
+                <strong id="t-selected">Selected:</strong> <span id="filename"></span>
             </div>
         </div>
 
         <div class="card" id="settings-section" style="opacity: 0.5; pointer-events: none;">
-            <h3>Settings</h3>
+            <h3 id="t-settings">Settings</h3>
             <div class="form-group">
-                <label>Preset</label>
+                <label id="t-label-preset">Preset</label>
                 <select id="preset">
-                    <option value="custom">Custom</option>
+                    <option value="custom" id="t-opt-custom">Custom</option>
                     {% for name in presets %}
                     <option value="{{ name }}">{{ name|capitalize }}</option>
                     {% endfor %}
                 </select>
             </div>
+            
             <div class="grid">
                 <div class="form-group">
-                    <label>Threshold (dB): <span id="v-threshold">-30</span></label>
+                    <label>
+                        <span id="t-label-threshold">Sensitivity (Noise Level)</span>
+                        <span><span id="v-threshold">-30</span> dB</span>
+                    </label>
+                    <span class="label-desc" id="d-threshold">Lower = more sensitive (cuts quiet noise). Higher = ignores louder noise.</span>
                     <input type="range" id="threshold" min="-60" max="-10" value="-30" step="1">
                 </div>
+                
                 <div class="form-group">
-                    <label>Min Silence Duration (s): <span id="v-duration">0.5</span></label>
+                    <label>
+                        <span id="t-label-duration">Min Silence Gap</span>
+                        <span><span id="v-duration">0.5</span> s</span>
+                    </label>
+                    <span class="label-desc" id="d-duration">How long the silence must last to be cut.</span>
                     <input type="range" id="duration" min="0.1" max="5.0" value="0.5" step="0.1">
                 </div>
+                
                 <div class="form-group">
-                    <label>Padding Start (ms): <span id="v-padding_start">100</span></label>
+                    <label>
+                        <span id="t-label-padding_start">Voice Fade-in (Start)</span>
+                        <span><span id="v-padding_start">100</span> ms</span>
+                    </label>
+                    <span class="label-desc" id="d-padding_start">Keep this much time before speech begins (prevents sharp cuts).</span>
                     <input type="range" id="padding_start" min="0" max="1000" value="100" step="10">
                 </div>
+                
                 <div class="form-group">
-                    <label>Padding End (ms): <span id="v-padding_end">150</span></label>
+                    <label>
+                        <span id="t-label-padding_end">Voice Fade-out (End)</span>
+                        <span><span id="v-padding_end">150</span> ms</span>
+                    </label>
+                    <span class="label-desc" id="d-padding_end">Keep this much time after speech ends (sounds more natural).</span>
                     <input type="range" id="padding_end" min="0" max="1000" value="150" step="10">
                 </div>
             </div>
+
             <div class="form-group">
-                <label><input type="checkbox" id="is_sample"> Process Sample Only</label>
-                <div id="sample-settings" style="display: none; margin-top: 0.5rem;">
-                    <label>Sample Duration (s): <span id="v-sample_duration">300</span></label>
+                <label><input type="checkbox" id="is_sample"> <span id="t-label-sample">Process Sample Only</span></label>
+                <div id="sample-settings" style="display: none; margin-top: 1rem;">
+                    <label>
+                        <span id="t-label-sample-dur">Sample Duration</span>
+                        <span><span id="v-sample_duration">300</span> s</span>
+                    </label>
                     <input type="range" id="sample_duration" min="30" max="600" value="300" step="30">
                 </div>
             </div>
+            
             <button class="btn" id="process-btn">Cut Silence</button>
         </div>
 
         <div class="card" id="status-section" style="display: none;">
-            <h3>Processing...</h3>
+            <h3 id="t-status-title">Processing...</h3>
             <p id="status-text">Uploading...</p>
             <div class="progress-container" style="display: block;">
                 <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
@@ -91,12 +244,302 @@
             <div class="stats" id="stats-content"></div>
             <div id="result-actions" style="display: none; margin-top: 1.5rem;">
                 <a id="download-link" class="btn" style="text-decoration: none; display: inline-block; text-align: center;">Download Result</a>
-                <button class="btn" style="background: #64748b; margin-top: 0.5rem;" onclick="location.reload()">Process Another</button>
+                <button class="btn" style="background: var(--border); color: var(--text); margin-top: 0.5rem;" onclick="location.reload()" id="t-btn-another">Process Another</button>
             </div>
         </div>
     </div>
 
     <script>
+        const translations = {
+            en: {
+                dropText: "Drag & drop video file here or click to select",
+                selected: "Selected:",
+                settings: "Settings",
+                preset: "Preset",
+                custom: "Custom",
+                threshold: "Sensitivity (Noise Level)",
+                thresholdDesc: "Lower = more sensitive (cuts quiet noise). Higher = ignores louder noise.",
+                duration: "Min Silence Gap",
+                durationDesc: "How long the silence must last to be cut.",
+                paddingStart: "Voice Fade-in (Start)",
+                paddingStartDesc: "Keep this much time before speech begins (prevents sharp cuts).",
+                paddingEnd: "Voice Fade-out (End)",
+                paddingEndDesc: "Keep this much time after speech ends (sounds more natural).",
+                sample: "Process Sample Only",
+                sampleDur: "Sample Duration",
+                processBtn: "Cut Silence",
+                statusTitle: "Processing...",
+                anotherBtn: "Process Another",
+                uploading: "Uploading...",
+                download: "Download Result",
+                statsTpl: "Original: {orig}s | Final: {final}s | Pauses removed: {count}"
+            },
+            ru: {
+                dropText: "Перетащите видео сюда или нажмите для выбора",
+                selected: "Выбрано:",
+                settings: "Настройки",
+                preset: "Пресет",
+                custom: "Свой вариант",
+                threshold: "Чувствительность (уровень шума)",
+                thresholdDesc: "Меньше = чувствительнее (удаляет тихий шум). Больше = игнорирует громкий шум.",
+                duration: "Длительность паузы",
+                durationDesc: "Минимальная длина тишины для вырезания.",
+                paddingStart: "Мягкое начало (отступ)",
+                paddingStartDesc: "Сколько мс оставить перед началом речи (чтобы не обрывалось).",
+                paddingEnd: "Мягкий конец (отступ)",
+                paddingEndDesc: "Сколько мс оставить после окончания речи (для естественности).",
+                sample: "Только фрагмент (сэмпл)",
+                sampleDur: "Длина фрагмента",
+                processBtn: "Вырезать тишину",
+                statusTitle: "Обработка...",
+                anotherBtn: "Обработать еще один",
+                uploading: "Загрузка...",
+                download: "Скачать результат",
+                statsTpl: "Было: {orig}с | Стало: {final}с | Удалено пауз: {count}"
+            },
+            es: {
+                dropText: "Arrastre el video aquí o haga clic para seleccionar",
+                selected: "Seleccionado:",
+                settings: "Ajustes",
+                preset: "Preajuste",
+                custom: "Personalizado",
+                threshold: "Sensibilidad (Nivel de ruido)",
+                thresholdDesc: "Menor = más sensible (corta ruidos suaves). Mayor = ignora ruidos fuertes.",
+                duration: "Brecha mínima de silencio",
+                durationDesc: "Cuánto tiempo debe durar el silencio para ser cortado.",
+                paddingStart: "Desvanecimiento de voz (Inicio)",
+                paddingStartDesc: "Tiempo antes de que comience el habla (evita cortes bruscos).",
+                paddingEnd: "Desvanecimiento de voz (Fin)",
+                paddingEndDesc: "Tiempo después de que termina el habla (suena más natural).",
+                sample: "Procesar solo muestra",
+                sampleDur: "Duración de la muestra",
+                processBtn: "Cortar silencio",
+                statusTitle: "Procesando...",
+                anotherBtn: "Procesar otro",
+                uploading: "Subiendo...",
+                download: "Descargar resultado",
+                statsTpl: "Original: {orig}s | Final: {final}s | Pausas eliminadas: {count}"
+            },
+            zh: {
+                dropText: "将视频文件拖到此处或点击选择",
+                selected: "已选择:",
+                settings: "设置",
+                preset: "预设",
+                custom: "自定义",
+                threshold: "灵敏度 (噪声水平)",
+                thresholdDesc: "越低 = 越灵敏 (剪掉轻微噪声)。越高 = 忽略较大噪声。",
+                duration: "最小静音间隔",
+                durationDesc: "静音必须持续多长时间才会被剪掉。",
+                paddingStart: "语音淡入 (开始)",
+                paddingStartDesc: "在语音开始前保留的时间 (防止硬剪)。",
+                paddingEnd: "语音淡出 (结束)",
+                paddingEndDesc: "在语音结束后保留的时间 (听起来更自然)。",
+                sample: "仅处理样本",
+                sampleDur: "样本时长",
+                processBtn: "开始剪切",
+                statusTitle: "处理中...",
+                anotherBtn: "处理另一个",
+                uploading: "上传中...",
+                download: "下载结果",
+                statsTpl: "原始: {orig}秒 | 最终: {final}秒 | 已移除暂停: {count}"
+            },
+            fr: {
+                dropText: "Glissez-déposez la vidéo ici ou cliquez pour choisir",
+                selected: "Sélectionné :",
+                settings: "Paramètres",
+                preset: "Préréglage",
+                custom: "Personnalisé",
+                threshold: "Sensibilité (Niveau de bruit)",
+                thresholdDesc: "Plus bas = plus sensible. Plus haut = ignore les bruits forts.",
+                duration: "Intervalle de silence min.",
+                durationDesc: "Durée minimale du silence pour être coupé.",
+                paddingStart: "Fondu vocal (Début)",
+                paddingStartDesc: "Temps conservé avant le début de la parole.",
+                paddingEnd: "Fondu vocal (Fin)",
+                paddingEndDesc: "Temps conservé après la fin de la parole.",
+                sample: "Traiter uniquement un échantillon",
+                sampleDur: "Durée de l'échantillon",
+                processBtn: "Couper le silence",
+                statusTitle: "Traitement...",
+                anotherBtn: "En traiter un autre",
+                uploading: "Téléchargement...",
+                download: "Télécharger le résultat",
+                statsTpl: "Original : {orig}s | Final : {final}s | Pauses supprimées : {count}"
+            },
+            de: {
+                dropText: "Video hierher ziehen oder zum Auswählen klicken",
+                selected: "Ausgewählt:",
+                settings: "Einstellungen",
+                preset: "Voreinstellung",
+                custom: "Benutzerdefiniert",
+                threshold: "Empfindlichkeit (Rauschpegel)",
+                thresholdDesc: "Niedriger = empfindlicher. Höher = ignoriert lauteres Rauschen.",
+                duration: "Min. Stille-Lücke",
+                durationDesc: "Wie lange die Stille dauern muss, um geschnitten zu werden.",
+                paddingStart: "Einblenden (Anfang)",
+                paddingStartDesc: "Zeit vor Beginn der Sprache beibehalten.",
+                paddingEnd: "Ausblenden (Ende)",
+                paddingEndDesc: "Zeit nach Ende der Sprache beibehalten.",
+                sample: "Nur Stichprobe verarbeiten",
+                sampleDur: "Stichprobenlänge",
+                processBtn: "Stille schneiden",
+                statusTitle: "Verarbeitung...",
+                anotherBtn: "Weiteres Video",
+                uploading: "Hochladen...",
+                download: "Ergebnis herunterladen",
+                statsTpl: "Original: {orig}s | Final: {final}s | Pausen entfernt: {count}"
+            },
+            pt: {
+                dropText: "Arraste o vídeo aqui ou clique para selecionar",
+                selected: "Selecionado:",
+                settings: "Configurações",
+                preset: "Predefinição",
+                custom: "Personalizado",
+                threshold: "Sensibilidade (Nível de ruído)",
+                thresholdDesc: "Menor = mais sensível. Maior = ignora ruídos altos.",
+                duration: "Intervalo mín. de silêncio",
+                durationDesc: "Tempo que o silêncio deve durar para ser cortado.",
+                paddingStart: "Fade-in de voz (Início)",
+                paddingStartDesc: "Tempo mantido antes do início da fala.",
+                paddingEnd: "Fade-out de voz (Fim)",
+                paddingEndDesc: "Tempo mantido após o fim da fala.",
+                sample: "Processar apenas amostra",
+                sampleDur: "Duração da amostra",
+                processBtn: "Cortar silêncio",
+                statusTitle: "Processando...",
+                anotherBtn: "Processar outro",
+                uploading: "Enviando...",
+                download: "Baixar resultado",
+                statsTpl: "Original: {orig}s | Final: {final}s | Pausas removidas: {count}"
+            },
+            ja: {
+                dropText: "動画ファイルをここにドラッグ＆ドロップするか、クリックして選択",
+                selected: "選択済み:",
+                settings: "設定",
+                preset: "プリセット",
+                custom: "カスタム",
+                threshold: "感度（ノイズレベル）",
+                thresholdDesc: "低いほど感度が高くなります。高いほど大きなノイズを無視します。",
+                duration: "最小無音時間",
+                durationDesc: "カットする無音の最小長さ。",
+                paddingStart: "ボイスフェードイン（開始）",
+                paddingStartDesc: "発話が始まる前に残す時間（急なカットを防ぐ）。",
+                paddingEnd: "ボイスフェードアウト（終了）",
+                paddingEndDesc: "発話が終わった後に残す時間（自然に聞こえる）。",
+                sample: "サンプルのみ処理",
+                sampleDur: "サンプル時間",
+                processBtn: "無音をカット",
+                statusTitle: "処理中...",
+                anotherBtn: "別の動画を処理",
+                uploading: "アップロード中...",
+                download: "結果をダウンロード",
+                statsTpl: "元: {orig}秒 | 完了: {final}秒 | 削除された無音: {count}"
+            },
+            ko: {
+                dropText: "비디오 파일을 여기로 드래그하거나 클릭하여 선택",
+                selected: "선택됨:",
+                settings: "설정",
+                preset: "프리셋",
+                custom: "사용자 정의",
+                threshold: "감도 (노이즈 레벨)",
+                thresholdDesc: "낮을수록 민감함 (작은 소음 제거). 높을수록 큰 소음 무시.",
+                duration: "최소 무음 간격",
+                durationDesc: "잘라낼 무음의 최소 지속 시간.",
+                paddingStart: "음성 페이드인 (시작)",
+                paddingStartDesc: "말이 시작되기 전에 유지할 시간.",
+                paddingEnd: "음성 페이드아웃 (종료)",
+                paddingEndDesc: "말이 끝난 후에 유지할 시간.",
+                sample: "샘플만 처리",
+                sampleDur: "샘플 길이",
+                processBtn: "무음 제거",
+                statusTitle: "처리 중...",
+                anotherBtn: "다른 파일 처리",
+                uploading: "업로드 중...",
+                download: "결과 다운로드",
+                statsTpl: "원본: {orig}초 | 최종: {final}초 | 제거된 구간: {count}"
+            },
+            ar: {
+                dropText: "اسحب ملف الفيديو هنا أو انقر للاختيار",
+                selected: "تم اختيار:",
+                settings: "الإعدادات",
+                preset: "معد مسبقاً",
+                custom: "مخصص",
+                threshold: "الحساسية (مستوى الضوضاء)",
+                thresholdDesc: "أقل = أكثر حساسية. أعلى = يتجاهل الضوضاء العالية.",
+                duration: "أقل فجوة صمت",
+                durationDesc: "كم من الوقت يجب أن يستمر الصمت ليتم قطعه.",
+                paddingStart: "تلاشي الصوت (البداية)",
+                paddingStartDesc: "الوقت الذي يتم الاحتفاظ به قبل بدء الكلام.",
+                paddingEnd: "تلاشي الصوت (النهاية)",
+                paddingEndDesc: "الوقت الذي يتم الاحتفاظ به بعد انتهاء الكلام.",
+                sample: "معالجة عينة فقط",
+                sampleDur: "مدة العينة",
+                processBtn: "قص الصمت",
+                statusTitle: "جاري المعالجة...",
+                anotherBtn: "معالجة ملف آخر",
+                uploading: "جاري الرفع...",
+                download: "تحميل النتيجة",
+                statsTpl: "الأصلي: {orig} ث | النهائي: {final} ث | الفجوات المزالة: {count}"
+            }
+        };
+
+        function updateLanguage(lang) {
+            const t = translations[lang];
+            document.getElementById('t-drop-text').innerText = t.dropText;
+            document.getElementById('t-selected').innerText = t.selected;
+            document.getElementById('t-settings').innerText = t.settings;
+            document.getElementById('t-label-preset').innerText = t.preset;
+            document.getElementById('t-opt-custom').innerText = t.custom;
+            document.getElementById('t-label-threshold').innerText = t.threshold;
+            document.getElementById('d-threshold').innerText = t.thresholdDesc;
+            document.getElementById('t-label-duration').innerText = t.duration;
+            document.getElementById('d-duration').innerText = t.durationDesc;
+            document.getElementById('t-label-padding_start').innerText = t.paddingStart;
+            document.getElementById('d-padding_start').innerText = t.paddingStartDesc;
+            document.getElementById('t-label-padding_end').innerText = t.paddingEnd;
+            document.getElementById('d-padding_end').innerText = t.paddingEndDesc;
+            document.getElementById('t-label-sample').innerText = t.sample;
+            document.getElementById('t-label-sample-dur').innerText = t.sampleDur;
+            document.getElementById('process-btn').innerText = t.processBtn;
+            document.getElementById('t-status-title').innerText = t.statusTitle;
+            document.getElementById('t-btn-another').innerText = t.anotherBtn;
+            document.getElementById('download-link').innerText = t.download;
+            
+            // Update stats if visible
+            const stats = document.getElementById('stats-content');
+            if (stats.dataset.orig) {
+                stats.innerHTML = t.statsTpl
+                    .replace('{orig}', stats.dataset.orig)
+                    .replace('{final}', stats.dataset.final)
+                    .replace('{count}', stats.dataset.count);
+            }
+        }
+
+        // Theme Toggle
+        const themeBtn = document.getElementById('theme-toggle');
+        themeBtn.onclick = () => {
+            const body = document.body;
+            const newTheme = body.dataset.theme === 'dark' ? 'light' : 'dark';
+            body.dataset.theme = newTheme;
+            themeBtn.innerText = newTheme === 'dark' ? '🌙' : '☀️';
+            localStorage.setItem('theme', newTheme);
+        };
+
+        // Initialize Theme & Lang
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.body.dataset.theme = savedTheme;
+        themeBtn.innerText = savedTheme === 'dark' ? '🌙' : '☀️';
+
+        const langSelect = document.getElementById('lang-select');
+        langSelect.onchange = (e) => {
+            updateLanguage(e.target.value);
+            localStorage.setItem('lang', e.target.value);
+        };
+        const savedLang = localStorage.getItem('lang') || 'en';
+        langSelect.value = savedLang;
+        updateLanguage(savedLang);
+
+        // Standard Logic (Modified for I18N)
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
         const settingsSection = document.getElementById('settings-section');
@@ -106,7 +549,6 @@
 
         const presets = {{ presets|tojson }};
 
-        // UI Updates
         ['threshold', 'duration', 'padding_start', 'padding_end', 'sample_duration'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.oninput = () => document.getElementById('v-' + id).innerText = el.value;
@@ -115,9 +557,12 @@
         document.getElementById('preset').onchange = (e) => {
             const p = presets[e.target.value];
             if (p) {
-                if (p.threshold) { document.getElementById('threshold').value = p.threshold; document.getElementById('v-threshold').innerText = p.threshold; }
-                if (p.padding_start) { document.getElementById('padding_start').value = p.padding_start; document.getElementById('v-padding_start').innerText = p.padding_start; }
-                if (p.padding_end) { document.getElementById('padding_end').value = p.padding_end; document.getElementById('v-padding_end').innerText = p.padding_end; }
+                ['threshold', 'padding_start', 'padding_end'].forEach(key => {
+                    if (p[key]) {
+                        document.getElementById(key).value = p[key];
+                        document.getElementById('v-' + key).innerText = p[key];
+                    }
+                });
             }
         };
 
@@ -125,7 +570,6 @@
             document.getElementById('sample-settings').style.display = e.target.checked ? 'block' : 'none';
         };
 
-        // Upload
         dropZone.onclick = () => fileInput.click();
         dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('active'); };
         dropZone.ondragleave = () => dropZone.classList.remove('active');
@@ -146,6 +590,7 @@
             
             statusSection.style.display = 'block';
             document.getElementById('upload-section').style.opacity = '0.5';
+            document.getElementById('status-text').innerText = translations[langSelect.value].uploading;
             
             try {
                 const res = await fetch('/upload', { method: 'POST', body: formData });
@@ -153,7 +598,7 @@
                 currentJobId = data.job_id;
                 settingsSection.style.opacity = '1';
                 settingsSection.style.pointerEvents = 'auto';
-                document.getElementById('status-text').innerText = 'File uploaded. Configure settings and start.';
+                document.getElementById('status-text').innerText = 'Ready.';
                 document.getElementById('progress-fill').style.width = '100%';
             } catch (err) {
                 alert('Upload failed');
@@ -181,18 +626,20 @@
                 const res = await fetch(`/status/${currentJobId}`);
                 const data = await res.json();
                 
-                document.getElementById('status-text').innerText = 'Status: ' + data.status;
+                document.getElementById('status-text').innerText = data.status;
                 document.getElementById('progress-fill').style.width = data.progress + '%';
                 
                 if (data.status === 'completed') {
                     clearInterval(interval);
                     document.getElementById('result-actions').style.display = 'block';
                     document.getElementById('download-link').href = `/download/${currentJobId}`;
-                    document.getElementById('stats-content').innerHTML = `
-                        Original: ${data.stats.original_duration}s | 
-                        Cut: ${data.stats.final_duration}s | 
-                        Pauses removed: ${data.stats.silence_count}
-                    `;
+                    
+                    const stats = document.getElementById('stats-content');
+                    stats.dataset.orig = data.stats.original_duration;
+                    stats.dataset.final = data.stats.final_duration;
+                    stats.dataset.count = data.stats.silence_count;
+                    
+                    updateLanguage(langSelect.value); // Refresh text with stats
                 } else if (data.status === 'failed') {
                     clearInterval(interval);
                     alert('Error: ' + data.error);
