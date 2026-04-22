@@ -58,6 +58,7 @@
             border: 1px solid var(--border);
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
             margin-bottom: 1.5rem; 
+            box-sizing: border-box;
         }
 
         h1, h3 { margin-top: 0; }
@@ -92,6 +93,26 @@
             border: 1px solid var(--border);
             background: var(--input-bg);
             color: var(--text);
+            box-sizing: border-box;
+        }
+
+        .lang-select {
+            padding: 0.4rem 1.8rem 0.4rem 0.8rem; /* Extra right padding for arrow */
+            border-radius: 0.4rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            cursor: pointer;
+            appearance: auto; /* Ensure browser arrow renders well or use custom arrow */
+        }
+
+        .theme-toggle {
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.4rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            cursor: pointer;
         }
 
         .btn { 
@@ -104,6 +125,9 @@
             font-weight: 600; 
             width: 100%;
             transition: background 0.2s;
+            box-sizing: border-box; /* Fix overflow */
+            display: block;
+            text-align: center;
         }
         .btn:hover { background: var(--primary-hover); }
         .btn:disabled { background: #64748b; cursor: not-allowed; }
@@ -118,6 +142,21 @@
         }
         #drop-zone.active { border-color: var(--primary); background: rgba(59, 130, 246, 0.1); }
 
+        #video-thumbnail {
+            max-height: 200px;
+            max-width: 100%;
+            width: auto;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            background: #000;
+            display: none;
+            margin: 0 auto 1rem auto;
+        }
+
+        #file-info {
+            text-align: center;
+        }
+
         .progress-container { margin-top: 1rem; display: none; }
         .progress-bar { height: 0.75rem; background: var(--border); border-radius: 1rem; overflow: hidden; }
         .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
@@ -130,13 +169,13 @@
             font-size: 0.875rem; 
         }
 
-        .theme-toggle, .lang-select {
-            padding: 0.4rem;
-            border-radius: 0.4rem;
-            background: var(--card);
-            border: 1px solid var(--border);
-            color: var(--text);
-            cursor: pointer;
+        #result-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            width: 100%;
+            box-sizing: border-box;
         }
     </style>
 </head>
@@ -164,10 +203,14 @@
         <div class="card" id="upload-section">
             <div id="drop-zone">
                 <p id="t-drop-text">Drag & drop video file here or click to select</p>
-                <input type="file" id="file-input" style="display: none">
             </div>
-            <div id="file-info" style="margin-top: 1rem; display: none;">
-                <strong id="t-selected">Selected:</strong> <span id="filename"></span>
+            <input type="file" id="file-input" style="display: none" accept="video/*,audio/*">
+            
+            <div id="file-info" style="display: none;">
+                <video id="video-thumbnail" muted playsinline></video>
+                <div>
+                    <strong id="t-selected">Selected:</strong> <span id="filename"></span>
+                </div>
             </div>
         </div>
 
@@ -177,9 +220,10 @@
                 <label id="t-label-preset">Preset</label>
                 <select id="preset">
                     <option value="custom" id="t-opt-custom">Custom</option>
-                    {% for name in presets %}
-                    <option value="{{ name }}">{{ name|capitalize }}</option>
-                    {% endfor %}
+                    <option value="podcast" id="t-opt-podcast">Podcast</option>
+                    <option value="interview" id="t-opt-interview">Interview</option>
+                    <option value="lecture" id="t-opt-lecture">Lecture</option>
+                    <option value="stream" id="t-opt-stream">Stream</option>
                 </select>
             </div>
             
@@ -242,9 +286,9 @@
                 <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
             </div>
             <div class="stats" id="stats-content"></div>
-            <div id="result-actions" style="display: none; margin-top: 1.5rem;">
-                <a id="download-link" class="btn" style="text-decoration: none; display: inline-block; text-align: center;">Download Result</a>
-                <button class="btn" style="background: var(--border); color: var(--text); margin-top: 0.5rem;" onclick="location.reload()" id="t-btn-another">Process Another</button>
+            <div id="result-actions" style="display: none;">
+                <a id="download-link" class="btn" style="text-decoration: none;">Download Result</a>
+                <button class="btn" style="background: var(--border); color: var(--text);" onclick="location.reload()" id="t-btn-another">Process Another</button>
             </div>
         </div>
     </div>
@@ -257,6 +301,10 @@
                 settings: "Settings",
                 preset: "Preset",
                 custom: "Custom",
+                p_podcast: "Podcast",
+                p_interview: "Interview",
+                p_lecture: "Lecture",
+                p_stream: "Stream",
                 threshold: "Sensitivity (Noise Level)",
                 thresholdDesc: "Lower = more sensitive (cuts quiet noise). Higher = ignores louder noise.",
                 duration: "Min Silence Gap",
@@ -280,6 +328,10 @@
                 settings: "Настройки",
                 preset: "Пресет",
                 custom: "Свой вариант",
+                p_podcast: "Подкаст",
+                p_interview: "Интервью",
+                p_lecture: "Лекция",
+                p_stream: "Стрим",
                 threshold: "Чувствительность (уровень шума)",
                 thresholdDesc: "Меньше = чувствительнее (удаляет тихий шум). Больше = игнорирует громкий шум.",
                 duration: "Длительность паузы",
@@ -303,6 +355,10 @@
                 settings: "Ajustes",
                 preset: "Preajuste",
                 custom: "Personalizado",
+                p_podcast: "Podcast",
+                p_interview: "Entrevista",
+                p_lecture: "Conferencia",
+                p_stream: "Transmisión",
                 threshold: "Sensibilidad (Nivel de ruido)",
                 thresholdDesc: "Menor = más sensible (corta ruidos suaves). Mayor = ignora ruidos fuertes.",
                 duration: "Brecha mínima de silencio",
@@ -326,6 +382,10 @@
                 settings: "设置",
                 preset: "预设",
                 custom: "自定义",
+                p_podcast: "播客",
+                p_interview: "采访",
+                p_lecture: "讲座",
+                p_stream: "直播",
                 threshold: "灵敏度 (噪声水平)",
                 thresholdDesc: "越低 = 越灵敏 (剪掉轻微噪声)。越高 = 忽略较大噪声。",
                 duration: "最小静音间隔",
@@ -349,6 +409,10 @@
                 settings: "Paramètres",
                 preset: "Préréglage",
                 custom: "Personnalisé",
+                p_podcast: "Podcast",
+                p_interview: "Entretien",
+                p_lecture: "Conférence",
+                p_stream: "Diffusion",
                 threshold: "Sensibilité (Niveau de bruit)",
                 thresholdDesc: "Plus bas = plus sensible. Plus haut = ignore les bruits forts.",
                 duration: "Intervalle de silence min.",
@@ -372,6 +436,10 @@
                 settings: "Einstellungen",
                 preset: "Voreinstellung",
                 custom: "Benutzerdefiniert",
+                p_podcast: "Podcast",
+                p_interview: "Interview",
+                p_lecture: "Vorlesung",
+                p_stream: "Stream",
                 threshold: "Empfindlichkeit (Rauschpegel)",
                 thresholdDesc: "Niedriger = empfindlicher. Höher = ignoriert lauteres Rauschen.",
                 duration: "Min. Stille-Lücke",
@@ -395,6 +463,10 @@
                 settings: "Configurações",
                 preset: "Predefinição",
                 custom: "Personalizado",
+                p_podcast: "Podcast",
+                p_interview: "Entrevista",
+                p_lecture: "Palestra",
+                p_stream: "Transmissão",
                 threshold: "Sensibilidade (Nível de ruído)",
                 thresholdDesc: "Menor = mais sensível. Maior = ignora ruídos altos.",
                 duration: "Intervalo mín. de silêncio",
@@ -418,6 +490,10 @@
                 settings: "設定",
                 preset: "プリセット",
                 custom: "カスタム",
+                p_podcast: "ポッドキャスト",
+                p_interview: "インタビュー",
+                p_lecture: "講義",
+                p_stream: "配信",
                 threshold: "感度（ノイズレベル）",
                 thresholdDesc: "低いほど感度が高くなります。高いほど大きなノイズを無視します。",
                 duration: "最小無音時間",
@@ -441,6 +517,10 @@
                 settings: "설정",
                 preset: "프리셋",
                 custom: "사용자 정의",
+                p_podcast: "팟캐스트",
+                p_interview: "인터뷰",
+                p_lecture: "강의",
+                p_stream: "스트리밍",
                 threshold: "감도 (노이즈 레벨)",
                 thresholdDesc: "낮을수록 민감함 (작은 소음 제거). 높을수록 큰 소음 무시.",
                 duration: "최소 무음 간격",
@@ -464,6 +544,10 @@
                 settings: "الإعدادات",
                 preset: "معد مسبقاً",
                 custom: "مخصص",
+                p_podcast: "بودكاست",
+                p_interview: "مقابلة",
+                p_lecture: "محاضرة",
+                p_stream: "بث",
                 threshold: "الحساسية (مستوى الضوضاء)",
                 thresholdDesc: "أقل = أكثر حساسية. أعلى = يتجاهل الضوضاء العالية.",
                 duration: "أقل فجوة صمت",
@@ -490,6 +574,13 @@
             document.getElementById('t-settings').innerText = t.settings;
             document.getElementById('t-label-preset').innerText = t.preset;
             document.getElementById('t-opt-custom').innerText = t.custom;
+            
+            // Translate Presets
+            if(document.getElementById('t-opt-podcast')) document.getElementById('t-opt-podcast').innerText = t.p_podcast;
+            if(document.getElementById('t-opt-interview')) document.getElementById('t-opt-interview').innerText = t.p_interview;
+            if(document.getElementById('t-opt-lecture')) document.getElementById('t-opt-lecture').innerText = t.p_lecture;
+            if(document.getElementById('t-opt-stream')) document.getElementById('t-opt-stream').innerText = t.p_stream;
+
             document.getElementById('t-label-threshold').innerText = t.threshold;
             document.getElementById('d-threshold').innerText = t.thresholdDesc;
             document.getElementById('t-label-duration').innerText = t.duration;
@@ -505,7 +596,6 @@
             document.getElementById('t-btn-another').innerText = t.anotherBtn;
             document.getElementById('download-link').innerText = t.download;
             
-            // Update stats if visible
             const stats = document.getElementById('stats-content');
             if (stats.dataset.orig) {
                 stats.innerHTML = t.statsTpl
@@ -515,7 +605,6 @@
             }
         }
 
-        // Theme Toggle
         const themeBtn = document.getElementById('theme-toggle');
         themeBtn.onclick = () => {
             const body = document.body;
@@ -525,7 +614,6 @@
             localStorage.setItem('theme', newTheme);
         };
 
-        // Initialize Theme & Lang
         const savedTheme = localStorage.getItem('theme') || 'dark';
         document.body.dataset.theme = savedTheme;
         themeBtn.innerText = savedTheme === 'dark' ? '🌙' : '☀️';
@@ -539,7 +627,6 @@
         langSelect.value = savedLang;
         updateLanguage(savedLang);
 
-        // Standard Logic (Modified for I18N)
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
         const settingsSection = document.getElementById('settings-section');
@@ -547,15 +634,24 @@
         const processBtn = document.getElementById('process-btn');
         let currentJobId = null;
 
-        const presets = {{ presets|tojson }};
+        // Hardcoded presets corresponding to backend
+        const presetValues = {
+            "podcast": {"threshold": -35, "padding_start": 200, "padding_end": 300},
+            "interview": {"threshold": -30, "padding_start": 150, "padding_end": 200},
+            "lecture": {"threshold": -25, "padding_start": 300, "padding_end": 400},
+            "stream": {"threshold": -40, "padding_start": 100, "padding_end": 150}
+        };
 
         ['threshold', 'duration', 'padding_start', 'padding_end', 'sample_duration'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.oninput = () => document.getElementById('v-' + id).innerText = el.value;
+            if (el) el.oninput = () => {
+                document.getElementById('v-' + id).innerText = el.value;
+                document.getElementById('preset').value = 'custom'; // Custom tweak
+            };
         });
 
         document.getElementById('preset').onchange = (e) => {
-            const p = presets[e.target.value];
+            const p = presetValues[e.target.value];
             if (p) {
                 ['threshold', 'padding_start', 'padding_end'].forEach(key => {
                     if (p[key]) {
@@ -580,9 +676,18 @@
         };
         fileInput.onchange = (e) => handleFile(e.target.files[0]);
 
-        async function handleFile(file) {
+        function handleFile(file) {
             if (!file) return;
+            
+            // Show video preview
+            const videoNode = document.getElementById('video-thumbnail');
+            const fileURL = URL.createObjectURL(file);
+            videoNode.src = fileURL;
+            videoNode.currentTime = 1.0; // Seek to 1s to get a frame
+            videoNode.style.display = 'block';
+
             document.getElementById('filename').innerText = file.name;
+            document.getElementById('drop-zone').style.display = 'none';
             document.getElementById('file-info').style.display = 'block';
             
             const formData = new FormData();
@@ -590,19 +695,35 @@
             
             statusSection.style.display = 'block';
             document.getElementById('upload-section').style.opacity = '0.5';
-            document.getElementById('status-text').innerText = translations[langSelect.value].uploading;
+            document.getElementById('status-text').innerText = translations[langSelect.value].uploading + ' 0%';
             
-            try {
-                const res = await fetch('/upload', { method: 'POST', body: formData });
-                const data = await res.json();
-                currentJobId = data.job_id;
-                settingsSection.style.opacity = '1';
-                settingsSection.style.pointerEvents = 'auto';
-                document.getElementById('status-text').innerText = 'Ready.';
-                document.getElementById('progress-fill').style.width = '100%';
-            } catch (err) {
-                alert('Upload failed');
-            }
+            // Upload via XHR to get exact progress
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload', true);
+            
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    document.getElementById('progress-fill').style.width = percentComplete + '%';
+                    document.getElementById('status-text').innerText = translations[langSelect.value].uploading + ' ' + Math.round(percentComplete) + '%';
+                }
+            };
+            
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    const data = JSON.parse(xhr.responseText);
+                    currentJobId = data.job_id;
+                    settingsSection.style.opacity = '1';
+                    settingsSection.style.pointerEvents = 'auto';
+                    document.getElementById('status-text').innerText = 'Ready.';
+                    document.getElementById('progress-fill').style.width = '100%';
+                } else {
+                    alert('Upload failed');
+                }
+            };
+            
+            xhr.onerror = () => alert('Upload failed');
+            xhr.send(formData);
         }
 
         processBtn.onclick = async () => {
@@ -626,12 +747,16 @@
                 const res = await fetch(`/status/${currentJobId}`);
                 const data = await res.json();
                 
-                document.getElementById('status-text').innerText = data.status;
+                let displayStatus = data.status;
+                if(data.status === 'analyzing') displayStatus = 'Analyzing Audio...';
+                if(data.status === 'processing') displayStatus = 'Processing Video...';
+                
+                document.getElementById('status-text').innerText = displayStatus;
                 document.getElementById('progress-fill').style.width = data.progress + '%';
                 
                 if (data.status === 'completed') {
                     clearInterval(interval);
-                    document.getElementById('result-actions').style.display = 'block';
+                    document.getElementById('result-actions').style.display = 'flex';
                     document.getElementById('download-link').href = `/download/${currentJobId}`;
                     
                     const stats = document.getElementById('stats-content');
@@ -639,7 +764,7 @@
                     stats.dataset.final = data.stats.final_duration;
                     stats.dataset.count = data.stats.silence_count;
                     
-                    updateLanguage(langSelect.value); // Refresh text with stats
+                    updateLanguage(langSelect.value);
                 } else if (data.status === 'failed') {
                     clearInterval(interval);
                     alert('Error: ' + data.error);
