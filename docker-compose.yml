@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  silencecut:
+    build: .
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./output:/app/output
+    environment:
+      - SILENCE_THRESHOLD=-30
+      - SILENCE_DURATION=0.5
+    restart: unless-stopped

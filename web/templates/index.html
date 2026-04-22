@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SilenceCut - Auto Silence Removal</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; padding: 2rem; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .card { background: var(--card); padding: 2rem; border-radius: 0.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 2rem; }
+        h1 { margin-top: 0; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; font-weight: 500; margin-bottom: 0.25rem; }
+        input[type="range"], input[type="number"], select { width: 100%; }
+        .btn { background: var(--primary); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 0.25rem; cursor: pointer; font-weight: 600; width: 100%; }
+        .btn:disabled { background: #94a3b8; }
+        #drop-zone { border: 2px dashed #cbd5e1; padding: 2rem; text-align: center; border-radius: 0.5rem; cursor: pointer; }
+        #drop-zone.active { border-color: var(--primary); background: #eff6ff; }
+        .progress-container { margin-top: 1rem; display: none; }
+        .progress-bar { height: 0.5rem; background: #e2e8f0; border-radius: 0.25rem; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s; }
+        .stats { margin-top: 1rem; font-size: 0.875rem; color: #64748b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SilenceCut</h1>
+        
+        <div class="card" id="upload-section">
+            <div id="drop-zone">
+                <p>Drag & drop video file here or click to select</p>
+                <input type="file" id="file-input" style="display: none">
+            </div>
+            <div id="file-info" style="margin-top: 1rem; display: none;">
+                <strong>Selected:</strong> <span id="filename"></span>
+            </div>
+        </div>
+
+        <div class="card" id="settings-section" style="opacity: 0.5; pointer-events: none;">
+            <h3>Settings</h3>
+            <div class="form-group">
+                <label>Preset</label>
+                <select id="preset">
+                    <option value="custom">Custom</option>
+                    {% for name in presets %}
+                    <option value="{{ name }}">{{ name|capitalize }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="grid">
+                <div class="form-group">
+                    <label>Threshold (dB): <span id="v-threshold">-30</span></label>
+                    <input type="range" id="threshold" min="-60" max="-10" value="-30" step="1">
+                </div>
+                <div class="form-group">
+                    <label>Min Silence Duration (s): <span id="v-duration">0.5</span></label>
+                    <input type="range" id="duration" min="0.1" max="5.0" value="0.5" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Padding Start (ms): <span id="v-padding_start">100</span></label>
+                    <input type="range" id="padding_start" min="0" max="1000" value="100" step="10">
+                </div>
+                <div class="form-group">
+                    <label>Padding End (ms): <span id="v-padding_end">150</span></label>
+                    <input type="range" id="padding_end" min="0" max="1000" value="150" step="10">
+                </div>
+            </div>
+            <div class="form-group">
+                <label><input type="checkbox" id="is_sample"> Process Sample Only</label>
+                <div id="sample-settings" style="display: none; margin-top: 0.5rem;">
+                    <label>Sample Duration (s): <span id="v-sample_duration">300</span></label>
+                    <input type="range" id="sample_duration" min="30" max="600" value="300" step="30">
+                </div>
+            </div>
+            <button class="btn" id="process-btn">Cut Silence</button>
+        </div>
+
+        <div class="card" id="status-section" style="display: none;">
+            <h3>Processing...</h3>
+            <p id="status-text">Uploading...</p>
+            <div class="progress-container" style="display: block;">
+                <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+            </div>
+            <div class="stats" id="stats-content"></div>
+            <div id="result-actions" style="display: none; margin-top: 1.5rem;">
+                <a id="download-link" class="btn" style="text-decoration: none; display: inline-block; text-align: center;">Download Result</a>
+                <button class="btn" style="background: #64748b; margin-top: 0.5rem;" onclick="location.reload()">Process Another</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const settingsSection = document.getElementById('settings-section');
+        const statusSection = document.getElementById('status-section');
+        const processBtn = document.getElementById('process-btn');
+        let currentJobId = null;
+
+        const presets = {{ presets|tojson }};
+
+        // UI Updates
+        ['threshold', 'duration', 'padding_start', 'padding_end', 'sample_duration'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.oninput = () => document.getElementById('v-' + id).innerText = el.value;
+        });
+
+        document.getElementById('preset').onchange = (e) => {
+            const p = presets[e.target.value];
+            if (p) {
+                if (p.threshold) { document.getElementById('threshold').value = p.threshold; document.getElementById('v-threshold').innerText = p.threshold; }
+                if (p.padding_start) { document.getElementById('padding_start').value = p.padding_start; document.getElementById('v-padding_start').innerText = p.padding_start; }
+                if (p.padding_end) { document.getElementById('padding_end').value = p.padding_end; document.getElementById('v-padding_end').innerText = p.padding_end; }
+            }
+        };
+
+        document.getElementById('is_sample').onchange = (e) => {
+            document.getElementById('sample-settings').style.display = e.target.checked ? 'block' : 'none';
+        };
+
+        // Upload
+        dropZone.onclick = () => fileInput.click();
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('active'); };
+        dropZone.ondragleave = () => dropZone.classList.remove('active');
+        dropZone.ondrop = (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('active');
+            handleFile(e.dataTransfer.files[0]);
+        };
+        fileInput.onchange = (e) => handleFile(e.target.files[0]);
+
+        async function handleFile(file) {
+            if (!file) return;
+            document.getElementById('filename').innerText = file.name;
+            document.getElementById('file-info').style.display = 'block';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            statusSection.style.display = 'block';
+            document.getElementById('upload-section').style.opacity = '0.5';
+            
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+                currentJobId = data.job_id;
+                settingsSection.style.opacity = '1';
+                settingsSection.style.pointerEvents = 'auto';
+                document.getElementById('status-text').innerText = 'File uploaded. Configure settings and start.';
+                document.getElementById('progress-fill').style.width = '100%';
+            } catch (err) {
+                alert('Upload failed');
+            }
+        }
+
+        processBtn.onclick = async () => {
+            const formData = new FormData();
+            formData.append('threshold', document.getElementById('threshold').value);
+            formData.append('duration', document.getElementById('duration').value);
+            formData.append('padding_start', document.getElementById('padding_start').value);
+            formData.append('padding_end', document.getElementById('padding_end').value);
+            formData.append('is_sample', document.getElementById('is_sample').checked);
+            formData.append('sample_duration', document.getElementById('sample_duration').value);
+
+            processBtn.disabled = true;
+            settingsSection.style.opacity = '0.5';
+            
+            await fetch(`/process/${currentJobId}`, { method: 'POST', body: formData });
+            pollStatus();
+        };
+
+        async function pollStatus() {
+            const interval = setInterval(async () => {
+                const res = await fetch(`/status/${currentJobId}`);
+                const data = await res.json();
+                
+                document.getElementById('status-text').innerText = 'Status: ' + data.status;
+                document.getElementById('progress-fill').style.width = data.progress + '%';
+                
+                if (data.status === 'completed') {
+                    clearInterval(interval);
+                    document.getElementById('result-actions').style.display = 'block';
+                    document.getElementById('download-link').href = `/download/${currentJobId}`;
+                    document.getElementById('stats-content').innerHTML = `
+                        Original: ${data.stats.original_duration}s | 
+                        Cut: ${data.stats.final_duration}s | 
+                        Pauses removed: ${data.stats.silence_count}
+                    `;
+                } else if (data.status === 'failed') {
+                    clearInterval(interval);
+                    alert('Error: ' + data.error);
+                }
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
