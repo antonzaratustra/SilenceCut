@@ -4,6 +4,7 @@ import shutil
 import asyncio
 import time
 import logging
+import re
 from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks, HTTPException, Request
@@ -53,6 +54,7 @@ async def cleanup_task():
         logger.info("Running scheduled cleanup...")
         
         for folder in [UPLOAD_DIR, OUTPUT_DIR]:
+            if not os.path.exists(folder): continue
             for filename in os.listdir(folder):
                 file_path = os.path.join(folder, filename)
                 try:
@@ -68,6 +70,40 @@ async def cleanup_task():
 @app.on_event("startup")
 async def startup_event():
     asyncio.create_task(cleanup_task())
+
+@app.get("/system_stats")
+async def get_system_stats():
+    size = 0
+    count = 0
+    for folder in [UPLOAD_DIR, OUTPUT_DIR]:
+        if os.path.exists(folder):
+            for filename in os.listdir(folder):
+                file_path = os.path.join(folder, filename)
+                if os.path.isfile(file_path):
+                    size += os.path.getsize(file_path)
+                    count += 1
+    return {"count": count, "size_bytes": size}
+
+@app.post("/cleanup")
+async def cleanup_all_files():
+    deleted_count = 0
+    for folder in [UPLOAD_DIR, OUTPUT_DIR]:
+        if os.path.exists(folder):
+            for filename in os.listdir(folder):
+                file_path = os.path.join(folder, filename)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                        deleted_count += 1
+                except Exception:
+                    pass
+    
+    # Preserve running jobs, clear the rest
+    active_jobs = {k: v for k, v in jobs.items() if v.status in ['starting', 'analyzing', 'processing', 'preparing_sample']}
+    jobs.clear()
+    jobs.update(active_jobs)
+    
+    return {"status": "success", "deleted": deleted_count}
 
 async def process_task(job_id: str, input_path: str, config: dict):
     job = jobs[job_id]

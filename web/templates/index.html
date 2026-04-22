@@ -195,7 +195,7 @@
             padding-bottom: 0.4rem;
         }
 
-        .theme-toggle {
+        .theme-toggle, .btn-cleanup {
             padding: 0.4rem 0.8rem;
             border-radius: 0.4rem;
             background: var(--card);
@@ -208,6 +208,32 @@
             justify-content: center;
             font-size: 1.1rem;
             box-sizing: border-box;
+            transition: all 0.3s;
+        }
+
+        .btn-cleanup {
+            color: var(--text-muted);
+            gap: 0.4rem;
+        }
+
+        .btn-cleanup svg {
+            fill: none;
+            transition: fill 0.3s;
+        }
+
+        .btn-cleanup.has-files {
+            color: var(--primary);
+            border-color: var(--primary);
+            background: rgba(249, 115, 22, 0.1);
+        }
+
+        .btn-cleanup.has-files svg {
+            fill: currentColor;
+        }
+
+        .btn-cleanup.has-files:hover {
+            background: var(--primary);
+            color: white;
         }
 
         .btn { 
@@ -326,6 +352,13 @@
                 <h1>TechZoro Silence Cut</h1>
             </div>
             <div class="controls-top">
+                <button id="cleanup-btn" class="btn-cleanup" title="Clear Temporary Files" style="display: none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    <span id="cleanup-size" style="font-size: 0.85rem; font-weight: bold;"></span>
+                </button>
                 <select id="lang-select" class="custom-select lang-select">
                     <option value="en">🇺🇸 English</option>
                     <option value="ru">🇷🇺 Русский</option>
@@ -484,7 +517,9 @@
                 st_preparing_sample: "Preparing Sample...",
                 st_analyzing: "Analyzing Audio...",
                 st_processing: "Cutting Silence...",
-                st_completed: "Completed!"
+                st_completed: "Completed!",
+                clearFiles: "Clear Temporary Files",
+                confirmCleanup: "Are you sure you want to delete {size} of temporary files and generated videos?"
             },
             ru: {
                 subtitle: "Сервис автоматически анализирует видео и вырезает из него долгие паузы и тишину.",
@@ -520,7 +555,9 @@
                 st_preparing_sample: "Подготовка фрагмента...",
                 st_analyzing: "Анализ звука...",
                 st_processing: "Нарезка видео...",
-                st_completed: "Готово!"
+                st_completed: "Готово!",
+                clearFiles: "Очистить временные файлы",
+                confirmCleanup: "Удалить все временные файлы и созданные видео ({size})?"
             },
             es: {
                 subtitle: "Analiza y corta automáticamente las pausas silenciosas de tus videos.",
@@ -766,6 +803,8 @@
             translations[lang].st_analyzing = translations.en.st_analyzing;
             translations[lang].st_processing = translations.en.st_processing;
             translations[lang].st_completed = translations.en.st_completed;
+            translations[lang].clearFiles = translations.en.clearFiles;
+            translations[lang].confirmCleanup = translations.en.confirmCleanup;
         });
 
         function updateLanguage(lang) {
@@ -777,6 +816,7 @@
             document.getElementById('t-settings').innerText = t.settings;
             document.getElementById('t-label-preset').innerText = t.preset;
             document.getElementById('t-opt-custom').innerText = t.custom;
+            document.getElementById('cleanup-btn').title = t.clearFiles;
             
             ['podcast', 'interview', 'lecture', 'stream'].forEach(p => {
                 const el = document.getElementById('t-opt-' + p);
@@ -830,6 +870,57 @@
         const savedLang = localStorage.getItem('lang') || 'en';
         langSelect.value = savedLang;
         updateLanguage(savedLang);
+
+        // --- System File Cleanup Logic ---
+        let currentSystemSizeFormatted = "0 MB";
+        
+        function formatBytes(bytes, decimals = 1) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        async function updateSystemStats() {
+            try {
+                const res = await fetch('/system_stats');
+                const data = await res.json();
+                const btn = document.getElementById('cleanup-btn');
+                const sizeLabel = document.getElementById('cleanup-size');
+                
+                if (data.size_bytes > 0) {
+                    btn.style.display = 'flex';
+                    currentSystemSizeFormatted = formatBytes(data.size_bytes);
+                    sizeLabel.innerText = currentSystemSizeFormatted;
+                    btn.classList.add('has-files');
+                } else {
+                    btn.style.display = 'none';
+                    btn.classList.remove('has-files');
+                }
+            } catch (e) {
+                console.error("Failed to load stats", e);
+            }
+        }
+        
+        // Check files on load and every 10 seconds
+        updateSystemStats();
+        setInterval(updateSystemStats, 10000);
+
+        document.getElementById('cleanup-btn').onclick = async () => {
+            const t = translations[langSelect.value];
+            const msg = t.confirmCleanup.replace('{size}', currentSystemSizeFormatted);
+            if (!confirm(msg)) return;
+            
+            try {
+                await fetch('/cleanup', { method: 'POST' });
+                updateSystemStats();
+                alert(t.st_completed);
+            } catch (e) {
+                alert("Failed to cleanup");
+            }
+        };
 
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
@@ -912,6 +1003,7 @@
                     document.getElementById('upload-progress-container').style.display = 'none';
                     settingsSection.style.display = 'block';
                     settingsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    updateSystemStats(); // Check disk space after upload
                 } else {
                     alert('Upload failed');
                     location.reload();
@@ -973,6 +1065,7 @@
                     stats.dataset.final = data.stats.final_duration;
                     stats.dataset.count = data.stats.silence_count;
                     updateLanguage(langSelect.value);
+                    updateSystemStats(); // Check disk space after processing
                 } else if (data.status === 'failed') {
                     clearInterval(interval);
                     alert('Error: ' + data.error);
