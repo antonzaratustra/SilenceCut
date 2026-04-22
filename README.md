@@ -1,51 +1,53 @@
-# SilenceCut
+# TechZoro Silence Cut
 
-Автоматическое удаление тишины из видеофайлов с использованием FFmpeg.
+Automatic silence removal from video files using FFmpeg.
 
-## Возможности
-- **Режим командной строки (CLI)**: Пакетная обработка всех файлов в папке или отдельных файлов.
-- **Веб-интерфейс**: Удобный пользовательский интерфейс с ползунками, пресетами и отслеживанием прогресса обработки.
-- **Режим сэмпла**: Тестирование выбранных настроек на небольшом фрагменте видео перед его полной обработкой.
-- **Пресеты**: Оптимизированные встроенные настройки для подкастов, интервью, лекций и стримов.
-- **Docker**: Простое развертывание инструмента в виде изолированного сервиса.
+## Features
+- **CLI Mode**: Batch process files in a folder or specific files.
+- **Web UI**: User-friendly interface with sliders, presets, and processing progress tracking.
+- **Sample Mode**: Test settings on a small fragment before processing the full video.
+- **Presets**: Optimized built-in settings for Podcasts, Interviews, Lectures, and Streams.
+- **Docker**: Easy deployment as an isolated service.
 
-## Установка
-1. Убедитесь, что [FFmpeg](https://ffmpeg.org/) установлен в вашей системе и добавлен в переменную окружения PATH.
-2. Установите зависимости Python:
+## Installation
+1. Ensure [FFmpeg](https://ffmpeg.org/) is installed on your system and added to your PATH.
+2. Open your terminal in the project directory.
+3. To start the web interface, run:
    ```bash
-   pip install -r requirements.txt
+   ./server.sh
    ```
+   *(On first run, it will automatically create a virtual environment and install all necessary dependencies like FastAPI).*
 
-## Использование
+## Usage
 
-### Командная строка (CLI)
-Обработка одного файла с использованием пресета:
+### Command Line Interface (CLI)
+Process a single file using a preset:
 ```bash
 ./run.sh video.mp4 --preset podcast
 ```
-Обработка всех поддерживаемых видеофайлов в текущей папке:
+Process all supported video files in the current directory:
 ```bash
 ./run.sh
 ```
 
-### Веб-интерфейс
-Запустите локальный сервер:
+### Web Interface
+Start the local server:
 ```bash
 ./server.sh
 ```
-Затем откройте в браузере страницу: `http://localhost:8765`
+Then open your browser and navigate to: `http://localhost:8765`
 
 ### Docker
-Запуск через Docker Compose:
+Run via Docker Compose:
 ```bash
 docker-compose up -d
 ```
 
-## Управление хранилищем
-Проект автоматически управляет свободным местом:
-- **Авто-удаление**: Исходные файлы удаляются сразу после завершения полной обработки.
-- **TTL (Время жизни)**: Все файлы в папках `uploads` и `output` старше 24 часов удаляются автоматически каждый час.
-- **Сэмплы**: При создании сэмпла оригинал хранится до завершения сессии, чтобы вы могли запустить полную обработку.
+## Storage & Cleanup
+The project automatically manages free space to prevent your disk from filling up with large video files:
+- **Auto-delete**: Source video files are deleted immediately after a successful "full processing" job.
+- **TTL (Time to Live)**: A background task runs every hour, deleting all temporary files, uploads, and outputs older than 24 hours.
+- **Samples**: When generating a sample, the original file is kept until you either process the full video or start a new job.
 
-## Настройка
-Отредактируйте файл `.env` (создав его на основе `.env.example`) или задайте переменные окружения напрямую, чтобы изменить параметры по умолчанию, такие как `SILENCE_THRESHOLD`, `PADDING_START` и другие.
+## Configuration
+Edit the `.env` file (create one based on `.env.example`) or set environment variables directly to change default parameters such as `SILENCE_THRESHOLD`, `PADDING_START`, and others.
