@@ -234,8 +234,19 @@ async def get_status(job_id: str):
 async def download_result(job_id: str):
     if job_id not in jobs or not jobs[job_id].result_file:
         raise HTTPException(status_code=404, detail="Result not ready")
-    file_path = os.path.join(OUTPUT_DIR, jobs[job_id].result_file)
-    return FileResponse(file_path, filename=jobs[job_id].filename.replace(".", "_cut."))
+    
+    job = jobs[job_id]
+    file_path = os.path.join(OUTPUT_DIR, job.result_file)
+    
+    # Smart filename generation
+    original_name, ext = os.path.splitext(job.filename)
+    # Remove existing _cut or _sample to avoid video_cut_cut_cut.mp4
+    clean_name = re.sub(r'(_cut|_sample)+$', '', original_name)
+    
+    suffix = "_sample" if "_sample" in job.result_file else "_cut"
+    download_name = f"{clean_name}{suffix}{ext}"
+    
+    return FileResponse(file_path, filename=download_name)
 
 if __name__ == "__main__":
     import uvicorn
