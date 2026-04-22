@@ -72,7 +72,12 @@ class SilenceCut:
             "-of", "default=noprint_wrappers=1:nokey=1", input_file
         ]
         result = subprocess.run(cmd, capture_output=True, text=True)
-        return float(result.stdout.strip())
+        output = result.stdout.strip()
+        try:
+            return float(output)
+        except (ValueError, TypeError):
+            logger.error(f"Could not get duration from ffprobe output: '{output}'")
+            return 0.0
 
     def calculate_speech_segments(self, silence_segments, total_duration):
         padding_start = self.config.get('padding_start', 100) / 1000.0

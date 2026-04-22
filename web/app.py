@@ -89,20 +89,24 @@ async def process_task(job_id: str, input_path: str, config: dict):
 
         job.status = "analyzing"
         job.progress = 15
+        await asyncio.sleep(0.5) # Give UI time to catch status
         
         total_duration = sc.get_video_duration(work_file)
         silence_segments = sc.detect_silence(work_file)
         speech_segments = sc.calculate_speech_segments(silence_segments, total_duration)
         
-        job.progress = 40
         job.status = "processing"
+        job.progress = 40
+        await asyncio.sleep(0.5)
         
         name, ext = os.path.splitext(job.filename)
         suffix = "_sample" if config.get('sample') else "_cut"
         output_filename = f"{name}{suffix}_{job_id[:8]}{ext}"
         output_path = os.path.join(OUTPUT_DIR, output_filename)
         
-        sc.process_video(work_file, output_path, speech_segments)
+        # Move long-running task to a separate thread to keep event loop responsive
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, sc.process_video, work_file, output_path, speech_segments)
         
         job.status = "completed"
         job.progress = 100

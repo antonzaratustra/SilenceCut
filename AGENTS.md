@@ -25,3 +25,4 @@ Basic command: `python silencecut.py [PATH] [OPTIONS]`
 - If the output cuts off speech too early, increase `--padding-end`.
 - If background noise is being kept, lower `--threshold` (e.g., -35 or -40).
 - For fast-paced content, use `--min-segment 0.1` and low padding.
+\n## Storage & Cleanup\n- The server automatically deletes uploaded source files after successful full processing.\n- A background task runs every hour to delete files older than 24 hours (configurable via TTL_HOURS).\n- When troubleshooting 'File Not Found' errors, ensure the job hasn't expired or the source wasn't already processed.
