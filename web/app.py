@@ -73,6 +73,10 @@ async def process_task(job_id: str, input_path: str, config: dict):
     job = jobs[job_id]
     temp_sample_path = None
     try:
+        # Extra safety check
+        if not os.path.exists(input_path):
+            raise FileNotFoundError(f"Source file missing: {input_path}")
+
         sc = SilenceCut(config)
         work_file = input_path
 
@@ -80,11 +84,19 @@ async def process_task(job_id: str, input_path: str, config: dict):
             job.status = "preparing_sample"
             job.progress = 5
             sample_dur = config.get('sample_duration', 300)
-            temp_sample_path = os.path.join(UPLOAD_DIR, f"sample_{job_id}_{job.filename}")
+            
+            # Use a unique name for EACH sample attempt to avoid overwriting conflicts
+            attempt_id = uuid.uuid4().hex[:6]
+            temp_sample_path = os.path.join(UPLOAD_DIR, f"sample_{attempt_id}_{job.filename}")
             
             cmd = ["ffmpeg", "-ss", "0", "-t", str(sample_dur), "-i", input_path, "-c", "copy", "-y", temp_sample_path]
-            process = await asyncio.create_subprocess_exec(*cmd, stderr=subprocess.PIPE)
+            process = await asyncio.create_subprocess_exec(*cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
             await process.wait()
+            
+            # Verify the sample file was actually created and is not empty
+            if not os.path.exists(temp_sample_path) or os.path.getsize(temp_sample_path) == 0:
+                 raise Exception("Failed to extract video sample (file is empty or missing).")
+            
             work_file = temp_sample_path
 
         job.status = "analyzing"
@@ -92,6 +104,9 @@ async def process_task(job_id: str, input_path: str, config: dict):
         await asyncio.sleep(0.5) # Give UI time to catch status
         
         total_duration = sc.get_video_duration(work_file)
+        if total_duration <= 0:
+            raise ValueError("Could not determine video duration. The file might be corrupted.")
+
         silence_segments = sc.detect_silence(work_file)
         speech_segments = sc.calculate_speech_segments(silence_segments, total_duration)
         
@@ -101,13 +116,16 @@ async def process_task(job_id: str, input_path: str, config: dict):
         
         name, ext = os.path.splitext(job.filename)
         suffix = "_sample" if config.get('sample') else "_cut"
-        output_filename = f"{name}{suffix}_{job_id[:8]}{ext}"
+        output_filename = f"{name}{suffix}_{uuid.uuid4().hex[:8]}{ext}"
         output_path = os.path.join(OUTPUT_DIR, output_filename)
         
         # Move long-running task to a separate thread to keep event loop responsive
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, sc.process_video, work_file, output_path, speech_segments)
         
+        if not os.path.exists(output_path):
+             raise Exception("Output file was not generated.")
+
         job.status = "completed"
         job.progress = 100
         job.result_file = output_filename
@@ -118,20 +136,24 @@ async def process_task(job_id: str, input_path: str, config: dict):
             "final_duration": round(sum(s['end'] - s['start'] for s in speech_segments), 2)
         }
 
-        # CRITICAL: Delete original upload if full processing is done
+        # CRITICAL: Delete original upload ONLY if full processing is done successfully
         if not config.get('sample'):
             if os.path.exists(input_path):
                 os.remove(input_path)
                 logger.info(f"Deleted source file after full processing: {input_path}")
 
     except Exception as e:
+        logger.error(f"Job {job_id} failed: {e}")
         job.status = "failed"
         job.error = str(e)
-        if os.path.exists(input_path):
-            os.remove(input_path) # Cleanup on failure
+        # We NO LONGER delete the input_path on failure. This allows the user to try again.
     finally:
+        # Clean up the TEMPORARY sample file only
         if temp_sample_path and os.path.exists(temp_sample_path):
-            os.remove(temp_sample_path)
+            try:
+                os.remove(temp_sample_path)
+            except Exception as e:
+                logger.warning(f"Could not remove temp sample {temp_sample_path}: {e}")
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
@@ -165,7 +187,7 @@ async def start_process(
     
     job = jobs[job_id]
     if not os.path.exists(job.original_path):
-         raise HTTPException(status_code=400, detail="Source file already deleted or not found")
+         raise HTTPException(status_code=400, detail="Source file already deleted or not found. Please upload again.")
 
     config = {
         'threshold': threshold,
@@ -180,6 +202,7 @@ async def start_process(
     
     job.status = "starting"
     job.progress = 0
+    job.error = None # Clear previous errors
     background_tasks.add_task(process_task, job_id, job.original_path, config)
     return {"status": "started", "job_id": job_id}
 
