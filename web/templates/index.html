@@ -15,7 +15,7 @@
             --primary-hover: #ea580c; /* Dark Orange */
             --border: #292524;
             --input-bg: #0c0a09;
-            --success: #10b981; /* Emerald green complements orange */
+            --card-inset: rgba(0, 0, 0, 0.2);
         }
 
         [data-theme="light"] {
@@ -27,6 +27,7 @@
             --primary-hover: #c2410c; 
             --border: #e7e5e4; /* Stone 200 */
             --input-bg: #ffffff;
+            --card-inset: rgba(0, 0, 0, 0.03);
         }
 
         body { 
@@ -82,6 +83,21 @@
             margin-bottom: 0.5rem; 
             font-size: 0.9rem;
         }
+        
+        .checkbox-label {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+        
+        .checkbox-label input {
+            margin: 0;
+            width: 1.2rem;
+            height: 1.2rem;
+            cursor: pointer;
+        }
 
         .label-desc { 
             display: block; 
@@ -90,10 +106,30 @@
             color: var(--text-muted);
             margin-bottom: 0.5rem;
         }
-
-        input[type="range"] { width: 100%; cursor: pointer; }
         
-        select, input[type="number"] { 
+        .setting-card {
+            background: var(--card-inset);
+            border: 1px solid var(--border);
+            padding: 1.25rem;
+            border-radius: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        
+        .setting-card .label-desc {
+            margin-bottom: 1.5rem; /* give space before slider */
+        }
+
+        input[type="range"] { 
+            width: 100%; 
+            cursor: pointer; 
+            margin-top: auto; /* Pushes the slider to the very bottom */
+            accent-color: var(--primary);
+        }
+        
+        input[type="number"] { 
             width: 100%; 
             padding: 0.5rem; 
             border-radius: 0.375rem; 
@@ -104,8 +140,8 @@
             font-size: 0.9rem;
         }
 
-        .lang-select {
-            padding: 0.4rem 2.2rem 0.4rem 0.8rem;
+        .custom-select {
+            padding: 0.5rem 2.2rem 0.5rem 0.8rem;
             border-radius: 0.4rem;
             background-color: var(--card);
             border: 1px solid var(--border);
@@ -119,8 +155,15 @@
             background-size: 1.1rem;
             font-size: 0.9rem;
             line-height: 1.2;
-            height: 38px; /* Fixed height to match theme toggle */
             box-sizing: border-box;
+            width: 100%;
+        }
+
+        .lang-select {
+            width: auto; /* specific override for header */
+            height: 38px;
+            padding-top: 0.4rem;
+            padding-bottom: 0.4rem;
         }
 
         .theme-toggle {
@@ -147,7 +190,7 @@
             cursor: pointer; 
             font-weight: 600; 
             width: 100%;
-            transition: background 0.2s;
+            transition: all 0.2s;
             box-sizing: border-box;
             display: block;
             text-align: center;
@@ -155,6 +198,26 @@
         }
         .btn:hover { background: var(--primary-hover); }
         .btn:disabled { background: #64748b; cursor: not-allowed; }
+        
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            padding: calc(0.75rem - 2px) calc(1.5rem - 2px); /* adjust for border */
+        }
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: var(--card-inset);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover {
+            background: var(--border);
+        }
 
         #drop-zone { 
             border: 2px dashed var(--border); 
@@ -165,7 +228,7 @@
             transition: border-color 0.2s, background 0.2s;
         }
         #drop-zone p { margin: 0; font-size: 1.1rem; font-weight: 500; }
-        #drop-zone.active { border-color: var(--primary); background: rgba(59, 130, 246, 0.1); }
+        #drop-zone.active { border-color: var(--primary); background: rgba(249, 115, 22, 0.1); } /* Orange tint */
 
         #video-thumbnail {
             max-height: 200px;
@@ -189,7 +252,8 @@
         .stats { 
             margin-top: 1rem; 
             padding: 1rem;
-            background: rgba(0,0,0,0.2);
+            background: var(--card-inset);
+            border: 1px solid var(--border);
             border-radius: 0.5rem;
             font-size: 0.875rem; 
         }
@@ -209,7 +273,7 @@
         <header>
             <h1>SilenceCut</h1>
             <div class="controls-top">
-                <select id="lang-select" class="lang-select">
+                <select id="lang-select" class="custom-select lang-select">
                     <option value="en">English</option>
                     <option value="ru">Русский</option>
                     <option value="es">Español</option>
@@ -248,9 +312,9 @@
 
         <div class="card" id="settings-section" style="display: none;">
             <h3 id="t-settings">Settings</h3>
-            <div class="form-group">
+            <div class="form-group" style="margin-bottom: 2rem;">
                 <label id="t-label-preset">Preset</label>
-                <select id="preset">
+                <select id="preset" class="custom-select">
                     <option value="custom" id="t-opt-custom">Custom</option>
                     <option value="podcast" id="t-opt-podcast">Podcast</option>
                     <option value="interview" id="t-opt-interview">Interview</option>
@@ -260,7 +324,7 @@
             </div>
             
             <div class="grid">
-                <div class="form-group">
+                <div class="form-group setting-card">
                     <label>
                         <span id="t-label-threshold">Sensitivity (Noise Level)</span>
                         <span><span id="v-threshold">-30</span> dB</span>
@@ -269,7 +333,7 @@
                     <input type="range" id="threshold" min="-60" max="-10" value="-30" step="1">
                 </div>
                 
-                <div class="form-group">
+                <div class="form-group setting-card">
                     <label>
                         <span id="t-label-duration">Min Silence Gap</span>
                         <span><span id="v-duration">0.5</span> s</span>
@@ -278,7 +342,7 @@
                     <input type="range" id="duration" min="0.1" max="5.0" value="0.5" step="0.1">
                 </div>
                 
-                <div class="form-group">
+                <div class="form-group setting-card">
                     <label>
                         <span id="t-label-padding_start">Voice Fade-in (Start)</span>
                         <span><span id="v-padding_start">100</span> ms</span>
@@ -287,7 +351,7 @@
                     <input type="range" id="padding_start" min="0" max="1000" value="100" step="10">
                 </div>
                 
-                <div class="form-group">
+                <div class="form-group setting-card">
                     <label>
                         <span id="t-label-padding_end">Voice Fade-out (End)</span>
                         <span><span id="v-padding_end">150</span> ms</span>
@@ -297,9 +361,12 @@
                 </div>
             </div>
 
-            <div class="form-group">
-                <label><input type="checkbox" id="is_sample"> <span id="t-label-sample">Process Sample Only</span></label>
-                <div id="sample-settings" style="display: none; margin-top: 1rem;">
+            <div class="form-group" style="margin-top: 1.5rem;">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="is_sample"> 
+                    <span id="t-label-sample">Process Sample Only</span>
+                </label>
+                <div id="sample-settings" style="display: none; margin-top: 1rem;" class="setting-card">
                     <label>
                         <span id="t-label-sample-dur">Sample Duration</span>
                         <span><span id="v-sample_duration">300</span> s</span>
@@ -308,7 +375,7 @@
                 </div>
             </div>
             
-            <button class="btn" id="process-btn">Cut Silence</button>
+            <button class="btn" id="process-btn" style="margin-top: 2rem;">Cut Silence</button>
         </div>
 
         <div class="card" id="status-section" style="display: none;">
@@ -320,9 +387,9 @@
             <div class="stats" id="stats-content"></div>
             <div id="result-actions" style="display: none;">
                 <a id="download-link" class="btn" style="text-decoration: none;">Download Result</a>
-                <button class="btn" id="full-process-btn" style="background: var(--success); display: none;">Process Full Video</button>
-                <button class="btn" style="background: var(--border); color: var(--text);" id="back-btn">Adjust Settings</button>
-                <button class="btn" style="background: var(--border); color: var(--text);" onclick="location.reload()" id="t-btn-another">Process New File</button>
+                <button class="btn btn-outline" id="full-process-btn" style="display: none;">Process Full Video</button>
+                <button class="btn btn-secondary" id="back-btn">Adjust Settings</button>
+                <button class="btn btn-secondary" onclick="location.reload()" id="t-btn-another">Process New File</button>
             </div>
         </div>
     </div>
