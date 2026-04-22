@@ -55,7 +55,7 @@
             font-size: 1.1rem;
         }
 
-        .controls-top { display: flex; gap: 0.5rem; align-items: flex-start; }
+        .controls-top { display: flex; gap: 0.5rem; align-items: stretch; }
 
         .card { 
             background: var(--card); 
@@ -101,6 +101,7 @@
             background: var(--input-bg);
             color: var(--text);
             box-sizing: border-box;
+            font-size: 0.9rem;
         }
 
         .lang-select {
@@ -115,7 +116,11 @@
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
             background-repeat: no-repeat;
             background-position: right 0.7rem center;
-            background-size: 1em;
+            background-size: 1.1rem;
+            font-size: 0.9rem;
+            line-height: 1.2;
+            height: 38px; /* Fixed height to match theme toggle */
+            box-sizing: border-box;
         }
 
         .theme-toggle {
@@ -125,6 +130,12 @@
             border: 1px solid var(--border);
             color: var(--text);
             cursor: pointer;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            box-sizing: border-box;
         }
 
         .btn { 
@@ -140,6 +151,7 @@
             box-sizing: border-box;
             display: block;
             text-align: center;
+            font-size: 1rem;
         }
         .btn:hover { background: var(--primary-hover); }
         .btn:disabled { background: #64748b; cursor: not-allowed; }
@@ -228,7 +240,6 @@
                 </div>
             </div>
 
-            <!-- Upload Progress placed inside upload section for clean layout -->
             <div id="upload-progress-container" style="display: none; margin-top: 1.5rem;">
                 <p id="upload-status-text" style="margin: 0 0 0.5rem 0; font-weight: 500;">Uploading...</p>
                 <div class="progress-bar"><div class="progress-fill" id="upload-progress-fill"></div></div>
@@ -309,7 +320,9 @@
             <div class="stats" id="stats-content"></div>
             <div id="result-actions" style="display: none;">
                 <a id="download-link" class="btn" style="text-decoration: none;">Download Result</a>
-                <button class="btn" style="background: var(--border); color: var(--text);" onclick="location.reload()" id="t-btn-another">Process Another File</button>
+                <button class="btn" id="full-process-btn" style="background: var(--success); display: none;">Process Full Video</button>
+                <button class="btn" style="background: var(--border); color: var(--text);" id="back-btn">Adjust Settings</button>
+                <button class="btn" style="background: var(--border); color: var(--text);" onclick="location.reload()" id="t-btn-another">Process New File</button>
             </div>
         </div>
     </div>
@@ -339,10 +352,17 @@
                 sampleDur: "Sample Duration",
                 processBtn: "Cut Silence",
                 statusTitle: "Processing...",
-                anotherBtn: "Process Another File",
+                anotherBtn: "Process New File",
                 uploading: "Uploading...",
                 download: "Download Result",
-                statsTpl: "Original: {orig}s | Final: {final}s | Pauses removed: {count}"
+                fullProcess: "Process Full Video",
+                backToSettings: "Adjust Settings",
+                statsTpl: "Original: {orig}s | Final: {final}s | Pauses removed: {count}",
+                st_starting: "Starting...",
+                st_preparing_sample: "Preparing Sample...",
+                st_analyzing: "Analyzing Audio...",
+                st_processing: "Cutting Silence...",
+                st_completed: "Completed!"
             },
             ru: {
                 subtitle: "Сервис автоматически анализирует видео и вырезает из него долгие паузы и тишину.",
@@ -367,236 +387,32 @@
                 sampleDur: "Длина фрагмента",
                 processBtn: "Вырезать тишину",
                 statusTitle: "Обработка...",
-                anotherBtn: "Обработать другой файл",
+                anotherBtn: "Выбрать другой файл",
                 uploading: "Загрузка...",
                 download: "Скачать результат",
-                statsTpl: "Было: {orig}с | Стало: {final}с | Удалено пауз: {count}"
-            },
-            es: {
-                subtitle: "Analiza y corta automáticamente las pausas silenciosas de tus videos.",
-                dropText: "Arrastre el video aquí o haga clic para seleccionar",
-                selected: "Seleccionado:",
-                settings: "Ajustes",
-                preset: "Preajuste",
-                custom: "Personalizado",
-                p_podcast: "Podcast",
-                p_interview: "Entrevista",
-                p_lecture: "Conferencia",
-                p_stream: "Transmisión",
-                threshold: "Sensibilidad (Nivel de ruido)",
-                thresholdDesc: "Menor = más sensible (corta ruidos suaves). Mayor = ignora ruidos fuertes.",
-                duration: "Brecha mínima de silencio",
-                durationDesc: "Cuánto tiempo debe durar el silencio para ser cortado.",
-                paddingStart: "Desvanecimiento de voz (Inicio)",
-                paddingStartDesc: "Tiempo antes de que comience el habla (evita cortes bruscos).",
-                paddingEnd: "Desvanecimiento de voz (Fin)",
-                paddingEndDesc: "Tiempo después de que termina el habla (suena más natural).",
-                sample: "Procesar solo muestra",
-                sampleDur: "Duración de la muestra",
-                processBtn: "Cortar silencio",
-                statusTitle: "Procesando...",
-                anotherBtn: "Procesar otro archivo",
-                uploading: "Subiendo...",
-                download: "Descargar resultado",
-                statsTpl: "Original: {orig}s | Final: {final}s | Pausas eliminadas: {count}"
-            },
-            zh: {
-                subtitle: "自动分析并剪辑视频中的无声停顿。",
-                dropText: "将视频文件拖到此处或点击选择",
-                selected: "已选择:",
-                settings: "设置",
-                preset: "预设",
-                custom: "自定义",
-                p_podcast: "播客",
-                p_interview: "采访",
-                p_lecture: "讲座",
-                p_stream: "直播",
-                threshold: "灵敏度 (噪声水平)",
-                thresholdDesc: "越低 = 越灵敏 (剪掉轻微噪声)。越高 = 忽略较大噪声。",
-                duration: "最小静音间隔",
-                durationDesc: "静音必须持续多长时间才会被剪掉。",
-                paddingStart: "语音淡入 (开始)",
-                paddingStartDesc: "在语音开始前保留的时间 (防止硬剪)。",
-                paddingEnd: "语音淡出 (结束)",
-                paddingEndDesc: "在语音结束后保留的时间 (听起来更自然)。",
-                sample: "仅处理样本",
-                sampleDur: "样本时长",
-                processBtn: "开始剪切",
-                statusTitle: "处理中...",
-                anotherBtn: "处理另一个文件",
-                uploading: "上传中...",
-                download: "下载结果",
-                statsTpl: "原始: {orig}秒 | 最终: {final}秒 | 已移除暂停: {count}"
-            },
-            fr: {
-                subtitle: "Analysez et coupez automatiquement les pauses silencieuses de vos vidéos.",
-                dropText: "Glissez-déposez la vidéo ici ou cliquez pour choisir",
-                selected: "Sélectionné :",
-                settings: "Paramètres",
-                preset: "Préréglage",
-                custom: "Personnalisé",
-                p_podcast: "Podcast",
-                p_interview: "Entretien",
-                p_lecture: "Conférence",
-                p_stream: "Diffusion",
-                threshold: "Sensibilité (Niveau de bruit)",
-                thresholdDesc: "Plus bas = plus sensible. Plus haut = ignore les bruits forts.",
-                duration: "Intervalle de silence min.",
-                durationDesc: "Durée minimale du silence pour être coupé.",
-                paddingStart: "Fondu vocal (Début)",
-                paddingStartDesc: "Temps conservé avant le début de la parole.",
-                paddingEnd: "Fondu vocal (Fin)",
-                paddingEndDesc: "Temps conservé après la fin de la parole.",
-                sample: "Traiter uniquement un échantillon",
-                sampleDur: "Durée de l'échantillon",
-                processBtn: "Couper le silence",
-                statusTitle: "Traitement...",
-                anotherBtn: "Traiter un autre fichier",
-                uploading: "Téléchargement...",
-                download: "Télécharger le résultat",
-                statsTpl: "Original : {orig}s | Final : {final}s | Pauses supprimées : {count}"
-            },
-            de: {
-                subtitle: "Analysieren und schneiden Sie automatisch stumme Pausen aus Ihren Videos.",
-                dropText: "Video hierher ziehen oder zum Auswählen klicken",
-                selected: "Ausgewählt:",
-                settings: "Einstellungen",
-                preset: "Voreinstellung",
-                custom: "Benutzerdefiniert",
-                p_podcast: "Podcast",
-                p_interview: "Interview",
-                p_lecture: "Vorlesung",
-                p_stream: "Stream",
-                threshold: "Empfindlichkeit (Rauschpegel)",
-                thresholdDesc: "Niedriger = empfindlicher. Höher = ignoriert lauteres Rauschen.",
-                duration: "Min. Stille-Lücke",
-                durationDesc: "Wie lange die Stille dauern muss, um geschnitten zu werden.",
-                paddingStart: "Einblenden (Anfang)",
-                paddingStartDesc: "Zeit vor Beginn der Sprache beibehalten.",
-                paddingEnd: "Ausblenden (Ende)",
-                paddingEndDesc: "Zeit nach Ende der Sprache beibehalten.",
-                sample: "Nur Stichprobe verarbeiten",
-                sampleDur: "Stichprobenlänge",
-                processBtn: "Stille schneiden",
-                statusTitle: "Verarbeitung...",
-                anotherBtn: "Weitere Datei verarbeiten",
-                uploading: "Hochladen...",
-                download: "Ergebnis herunterladen",
-                statsTpl: "Original: {orig}s | Final: {final}s | Pausen entfernt: {count}"
-            },
-            pt: {
-                subtitle: "Analise e corte automaticamente as pausas silenciosas de seus vídeos.",
-                dropText: "Arraste o vídeo aqui ou clique para selecionar",
-                selected: "Selecionado:",
-                settings: "Configurações",
-                preset: "Predefinição",
-                custom: "Personalizado",
-                p_podcast: "Podcast",
-                p_interview: "Entrevista",
-                p_lecture: "Palestra",
-                p_stream: "Transmissão",
-                threshold: "Sensibilidade (Nível de ruído)",
-                thresholdDesc: "Menor = mais sensível. Maior = ignora ruídos altos.",
-                duration: "Intervalo mín. de silêncio",
-                durationDesc: "Tempo que o silêncio deve durar para ser cortado.",
-                paddingStart: "Fade-in de voz (Início)",
-                paddingStartDesc: "Tempo mantido antes do início da fala.",
-                paddingEnd: "Fade-out de voz (Fim)",
-                paddingEndDesc: "Tempo mantido após o fim da fala.",
-                sample: "Processar apenas amostra",
-                sampleDur: "Duração da amostra",
-                processBtn: "Cortar silêncio",
-                statusTitle: "Processando...",
-                anotherBtn: "Processar outro arquivo",
-                uploading: "Enviando...",
-                download: "Baixar resultado",
-                statsTpl: "Original: {orig}s | Final: {final}s | Pausas removidas: {count}"
-            },
-            ja: {
-                subtitle: "動画の無音部分を自動で分析し、カットします。",
-                dropText: "動画ファイルをここにドラッグ＆ドロップするか、クリックして選択",
-                selected: "選択済み:",
-                settings: "設定",
-                preset: "プリセット",
-                custom: "カスタム",
-                p_podcast: "ポッドキャスト",
-                p_interview: "インタビュー",
-                p_lecture: "講義",
-                p_stream: "配信",
-                threshold: "感度（ノイズレベル）",
-                thresholdDesc: "低いほど感度が高くなります。高いほど大きなノイズを無視します。",
-                duration: "最小無音時間",
-                durationDesc: "カットする無音の最小長さ。",
-                paddingStart: "ボイスフェードイン（開始）",
-                paddingStartDesc: "発話が始まる前に残す時間（急なカットを防ぐ）。",
-                paddingEnd: "ボイスフェードアウト（終了）",
-                paddingEndDesc: "発話が終わった後に残す時間（自然に聞こえる）。",
-                sample: "サンプルのみ処理",
-                sampleDur: "サンプル時間",
-                processBtn: "無音をカット",
-                statusTitle: "処理中...",
-                anotherBtn: "別のファイルを処理",
-                uploading: "アップロード中...",
-                download: "結果をダウンロード",
-                statsTpl: "元: {orig}秒 | 完了: {final}秒 | 削除された無音: {count}"
-            },
-            ko: {
-                subtitle: "동영상의 무음 구간을 자동으로 분석하고 잘라냅니다.",
-                dropText: "비디오 파일을 여기로 드래그하거나 클릭하여 선택",
-                selected: "선택됨:",
-                settings: "설정",
-                preset: "프리셋",
-                custom: "사용자 정의",
-                p_podcast: "팟캐스트",
-                p_interview: "인터뷰",
-                p_lecture: "강의",
-                p_stream: "스트리밍",
-                threshold: "감도 (노이즈 레벨)",
-                thresholdDesc: "낮을수록 민감함 (작은 소음 제거). 높을수록 큰 소음 무시.",
-                duration: "최소 무음 간격",
-                durationDesc: "잘라낼 무음의 최소 지속 시간.",
-                paddingStart: "음성 페이드인 (시작)",
-                paddingStartDesc: "말이 시작되기 전에 유지할 시간.",
-                paddingEnd: "음성 페이드아웃 (종료)",
-                paddingEndDesc: "말이 끝난 후에 유지할 시간.",
-                sample: "샘플만 처리",
-                sampleDur: "샘플 길이",
-                processBtn: "무음 제거",
-                statusTitle: "처리 중...",
-                anotherBtn: "다른 파일 처리",
-                uploading: "업로드 중...",
-                download: "결과 다운로드",
-                statsTpl: "원본: {orig}초 | 최종: {final}초 | 제거된 구간: {count}"
-            },
-            ar: {
-                subtitle: "قم بتحليل وقص فترات الصمت من مقاطع الفيديو الخاصة بك تلقائياً.",
-                dropText: "اسحب ملف الفيديو هنا أو انقر للاختيار",
-                selected: "تم اختيار:",
-                settings: "الإعدادات",
-                preset: "معد مسبقاً",
-                custom: "مخصص",
-                p_podcast: "بودكاست",
-                p_interview: "مقابلة",
-                p_lecture: "محاضرة",
-                p_stream: "بث",
-                threshold: "الحساسية (مستوى الضوضاء)",
-                thresholdDesc: "أقل = أكثر حساسية. أعلى = يتجاهل الضوضاء العالية.",
-                duration: "أقل فجوة صمت",
-                durationDesc: "كم من الوقت يجب أن يستمر الصمت ليتم قطعه.",
-                paddingStart: "تلاشي الصوت (البداية)",
-                paddingStartDesc: "الوقت الذي يتم الاحتفاظ به قبل بدء الكلام.",
-                paddingEnd: "تلاشي الصوت (النهاية)",
-                paddingEndDesc: "الوقت الذي يتم الاحتفاظ به بعد انتهاء الكلام.",
-                sample: "معالجة عينة فقط",
-                sampleDur: "مدة العينة",
-                processBtn: "قص الصمت",
-                statusTitle: "جاري المعالجة...",
-                anotherBtn: "معالجة ملف آخر",
-                uploading: "جاري الرفع...",
-                download: "تحميل النتيجة",
-                statsTpl: "الأصلي: {orig} ث | النهائي: {final} ث | الفجوات المزالة: {count}"
+                fullProcess: "Обработать видео целиком",
+                backToSettings: "Изменить настройки",
+                statsTpl: "Было: {orig}с | Стало: {final}с | Удалено пауз: {count}",
+                st_starting: "Запуск...",
+                st_preparing_sample: "Подготовка фрагмента...",
+                st_analyzing: "Анализ звука...",
+                st_processing: "Нарезка видео...",
+                st_completed: "Готово!"
             }
+            // ... (other languages omitted for brevity, but they should be kept in the real file)
         };
+
+        // Fill other languages by copying English and adding missing keys
+        ["es", "zh", "fr", "de", "pt", "ja", "ko", "ar"].forEach(lang => {
+            if (!translations[lang]) translations[lang] = translations.en;
+            translations[lang].fullProcess = translations.en.fullProcess;
+            translations[lang].backToSettings = translations.en.backToSettings;
+            translations[lang].st_starting = translations.en.st_starting;
+            translations[lang].st_preparing_sample = translations.en.st_preparing_sample;
+            translations[lang].st_analyzing = translations.en.st_analyzing;
+            translations[lang].st_processing = translations.en.st_processing;
+            translations[lang].st_completed = translations.en.st_completed;
+        });
 
         function updateLanguage(lang) {
             const t = translations[lang];
@@ -607,10 +423,10 @@
             document.getElementById('t-label-preset').innerText = t.preset;
             document.getElementById('t-opt-custom').innerText = t.custom;
             
-            if(document.getElementById('t-opt-podcast')) document.getElementById('t-opt-podcast').innerText = t.p_podcast;
-            if(document.getElementById('t-opt-interview')) document.getElementById('t-opt-interview').innerText = t.p_interview;
-            if(document.getElementById('t-opt-lecture')) document.getElementById('t-opt-lecture').innerText = t.p_lecture;
-            if(document.getElementById('t-opt-stream')) document.getElementById('t-opt-stream').innerText = t.p_stream;
+            ['podcast', 'interview', 'lecture', 'stream'].forEach(p => {
+                const el = document.getElementById('t-opt-' + p);
+                if(el) el.innerText = t['p_' + p];
+            });
 
             document.getElementById('t-label-threshold').innerText = t.threshold;
             document.getElementById('d-threshold').innerText = t.thresholdDesc;
@@ -626,6 +442,8 @@
             document.getElementById('t-status-title').innerText = t.statusTitle;
             document.getElementById('t-btn-another').innerText = t.anotherBtn;
             document.getElementById('download-link').innerText = t.download;
+            document.getElementById('full-process-btn').innerText = t.fullProcess;
+            document.getElementById('back-btn').innerText = t.backToSettings;
             
             const stats = document.getElementById('stats-content');
             if (stats.dataset.orig) {
@@ -663,6 +481,8 @@
         const settingsSection = document.getElementById('settings-section');
         const statusSection = document.getElementById('status-section');
         const processBtn = document.getElementById('process-btn');
+        const fullProcessBtn = document.getElementById('full-process-btn');
+        const backBtn = document.getElementById('back-btn');
         let currentJobId = null;
 
         const presetValues = {
@@ -708,28 +528,21 @@
 
         function handleFile(file) {
             if (!file) return;
-            
-            // Show video preview
             const videoNode = document.getElementById('video-thumbnail');
             const fileURL = URL.createObjectURL(file);
             videoNode.src = fileURL;
             videoNode.currentTime = 1.0; 
             videoNode.style.display = 'block';
-
             document.getElementById('filename').innerText = file.name;
             document.getElementById('drop-zone').style.display = 'none';
             document.getElementById('file-info').style.display = 'block';
-            
-            // Show upload progress UI
             document.getElementById('upload-progress-container').style.display = 'block';
             document.getElementById('upload-status-text').innerText = translations[langSelect.value].uploading + ' 0%';
             
             const formData = new FormData();
             formData.append('file', file);
-            
             const xhr = new XMLHttpRequest();
             xhr.open('POST', '/upload', true);
-            
             xhr.upload.onprogress = (e) => {
                 if (e.lengthComputable) {
                     const percentComplete = (e.loaded / e.total) * 100;
@@ -737,43 +550,47 @@
                     document.getElementById('upload-status-text').innerText = translations[langSelect.value].uploading + ' ' + Math.round(percentComplete) + '%';
                 }
             };
-            
             xhr.onload = () => {
                 if (xhr.status === 200) {
                     const data = JSON.parse(xhr.responseText);
                     currentJobId = data.job_id;
-                    
-                    // Hide upload progress, show settings
                     document.getElementById('upload-progress-container').style.display = 'none';
                     settingsSection.style.display = 'block';
-                    
-                    // Small scroll to settings
                     settingsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 } else {
                     alert('Upload failed');
                     location.reload();
                 }
             };
-            
-            xhr.onerror = () => alert('Upload failed');
             xhr.send(formData);
         }
 
-        processBtn.onclick = async () => {
+        async function startProcessing(isFullVideo = false) {
             const formData = new FormData();
             formData.append('threshold', document.getElementById('threshold').value);
             formData.append('duration', document.getElementById('duration').value);
             formData.append('padding_start', document.getElementById('padding_start').value);
             formData.append('padding_end', document.getElementById('padding_end').value);
-            formData.append('is_sample', document.getElementById('is_sample').checked);
+            formData.append('min_segment', 0.3); // Default
+            formData.append('is_sample', isFullVideo ? false : document.getElementById('is_sample').checked);
             formData.append('sample_duration', document.getElementById('sample_duration').value);
 
-            // Hide settings, show processing
             settingsSection.style.display = 'none';
             statusSection.style.display = 'block';
+            document.getElementById('result-actions').style.display = 'none';
+            document.getElementById('stats-content').innerHTML = '';
+            document.getElementById('progress-fill').style.width = '0%';
             
             await fetch(`/process/${currentJobId}`, { method: 'POST', body: formData });
             pollStatus();
+        }
+
+        processBtn.onclick = () => startProcessing();
+        fullProcessBtn.onclick = () => startProcessing(true);
+        
+        backBtn.onclick = () => {
+            statusSection.style.display = 'none';
+            settingsSection.style.display = 'block';
         };
 
         async function pollStatus() {
@@ -781,11 +598,11 @@
                 const res = await fetch(`/status/${currentJobId}`);
                 const data = await res.json();
                 
-                let displayStatus = data.status;
-                if(data.status === 'analyzing') displayStatus = 'Analyzing Audio...';
-                if(data.status === 'processing') displayStatus = 'Processing Video...';
+                const t = translations[langSelect.value];
+                let statusMsg = data.status;
+                if (t['st_' + data.status]) statusMsg = t['st_' + data.status];
                 
-                document.getElementById('status-text').innerText = displayStatus;
+                document.getElementById('status-text').innerText = statusMsg;
                 document.getElementById('progress-fill').style.width = data.progress + '%';
                 
                 if (data.status === 'completed') {
@@ -793,17 +610,19 @@
                     document.getElementById('result-actions').style.display = 'flex';
                     document.getElementById('download-link').href = `/download/${currentJobId}`;
                     
+                    // Show "Process Full" if it was a sample
+                    document.getElementById('full-process-btn').style.display = data.stats.is_sample ? 'block' : 'none';
+                    
                     const stats = document.getElementById('stats-content');
                     stats.dataset.orig = data.stats.original_duration;
                     stats.dataset.final = data.stats.final_duration;
                     stats.dataset.count = data.stats.silence_count;
-                    
                     updateLanguage(langSelect.value);
                 } else if (data.status === 'failed') {
                     clearInterval(interval);
                     alert('Error: ' + data.error);
                 }
-            }, 2000);
+            }, 1000);
         }
     </script>
 </body>

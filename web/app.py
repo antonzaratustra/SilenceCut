@@ -2,6 +2,7 @@ import os
 import uuid
 import shutil
 import asyncio
+import subprocess
 from typing import List, Optional
 from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks, HTTPException, Request
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
@@ -15,7 +16,6 @@ load_dotenv()
 
 app = FastAPI()
 
-# Setup paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UPLOAD_DIR = os.path.join(BASE_DIR, "tmp", "uploads")
 OUTPUT_DIR = os.path.join(BASE_DIR, "output")
@@ -25,48 +25,70 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "web", "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "web", "templates"))
 
-# Task storage (in-memory for this prototype)
 jobs = {}
 
 class JobStatus:
-    def __init__(self, job_id, filename):
+    def __init__(self, job_id, filename, original_path=None):
         self.job_id = job_id
         self.filename = filename
+        self.original_path = original_path # Keep track for full processing after sample
         self.status = "pending"
         self.progress = 0
         self.result_file = None
         self.error = None
         self.stats = {}
+        self.config = {} # Store config to reuse for full processing
 
 async def process_task(job_id: str, input_path: str, config: dict):
     job = jobs[job_id]
+    job.config = config
+    temp_sample_path = None
+    
     try:
-        job.status = "analyzing"
-        job.progress = 10
-        
         sc = SilenceCut(config)
+        work_file = input_path
+
+        # Handle Sample Mode
+        if config.get('sample'):
+            job.status = "preparing_sample"
+            job.progress = 5
+            sample_dur = config.get('sample_duration', 300)
+            temp_sample_path = os.path.join(UPLOAD_DIR, f"sample_{job_id}_{job.filename}")
+            
+            cmd = [
+                "ffmpeg", "-ss", "0", "-t", str(sample_dur),
+                "-i", input_path, "-c", "copy", "-y", temp_sample_path
+            ]
+            process = await asyncio.create_subprocess_exec(*cmd, stderr=subprocess.PIPE)
+            await process.wait()
+            work_file = temp_sample_path
+
+        job.status = "analyzing"
+        job.progress = 15
         
         # Detection
-        total_duration = sc.get_video_duration(input_path)
-        silence_segments = sc.detect_silence(input_path)
+        total_duration = sc.get_video_duration(work_file)
+        silence_segments = sc.detect_silence(work_file)
         speech_segments = sc.calculate_speech_segments(silence_segments, total_duration)
         
-        job.status = "processing"
         job.progress = 40
+        job.status = "processing"
         
         # Output setup
-        filename = os.path.basename(input_path)
-        name, ext = os.path.splitext(filename)
-        output_filename = f"{name}_cut_{job_id}{ext}"
+        name, ext = os.path.splitext(job.filename)
+        suffix = "_sample" if config.get('sample') else "_cut"
+        output_filename = f"{name}{suffix}_{uuid.uuid4().hex[:6]}{ext}"
         output_path = os.path.join(OUTPUT_DIR, output_filename)
         
-        # Execution (synchronous call for now, could be improved with progress parsing)
-        sc.process_video(input_path, output_path, speech_segments)
+        # Execution
+        # Note: process_video is synchronous, in a real app we'd wrap this in a thread
+        sc.process_video(work_file, output_path, speech_segments)
         
         job.status = "completed"
         job.progress = 100
         job.result_file = output_filename
         job.stats = {
+            "is_sample": bool(config.get('sample')),
             "silence_count": len(silence_segments),
             "original_duration": round(total_duration, 2),
             "final_duration": round(sum(s['end'] - s['start'] for s in speech_segments), 2)
@@ -75,9 +97,10 @@ async def process_task(job_id: str, input_path: str, config: dict):
         job.status = "failed"
         job.error = str(e)
     finally:
-        # Cleanup uploaded file
-        if os.path.exists(input_path):
-            os.remove(input_path)
+        if temp_sample_path and os.path.exists(temp_sample_path):
+            os.remove(temp_sample_path)
+        # We DON'T remove the original input_path here anymore so we can re-process it if it's a sample
+        # Instead, we should have a cleanup task for old files.
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
@@ -91,7 +114,7 @@ async def upload_file(file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
-    jobs[job_id] = JobStatus(job_id, file.filename)
+    jobs[job_id] = JobStatus(job_id, file.filename, original_path=file_path)
     return {"job_id": job_id, "filename": file.filename}
 
 @app.post("/process/{job_id}")
@@ -110,7 +133,7 @@ async def start_process(
         raise HTTPException(status_code=404, detail="Job not found")
     
     job = jobs[job_id]
-    input_path = os.path.join(UPLOAD_DIR, f"{job_id}_{job.filename}")
+    input_path = job.original_path
     
     config = {
         'threshold': threshold,
@@ -118,11 +141,13 @@ async def start_process(
         'padding_start': padding_start,
         'padding_end': padding_end,
         'min_segment_duration': min_segment,
-        'sample': sample_duration if is_sample else None,
+        'sample': is_sample,
         'sample_duration': sample_duration,
         'output_dir': OUTPUT_DIR
     }
     
+    job.status = "starting"
+    job.progress = 0
     background_tasks.add_task(process_task, job_id, input_path, config)
     return {"status": "started", "job_id": job_id}
 
