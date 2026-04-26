@@ -33,6 +33,7 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "web", "templates")
 
 # Job storage
 jobs = {}
+active_tasks = {}
 
 class JobStatus:
     def __init__(self, job_id, filename, original_path=None):
@@ -113,12 +114,14 @@ async def process_task(job_id: str, input_path: str, config: dict):
         if not os.path.exists(input_path):
             raise FileNotFoundError(f"Source file missing: {input_path}")
 
+        logger.info(f"Job {job_id} started for {job.filename}")
         sc = SilenceCut(config)
         work_file = input_path
 
         if config.get('sample'):
             job.status = "preparing_sample"
             job.progress = 5
+            logger.info(f"Job {job_id}: preparing sample")
             sample_dur = config.get('sample_duration', 300)
             
             # Use a unique name for EACH sample attempt to avoid overwriting conflicts
@@ -137,6 +140,7 @@ async def process_task(job_id: str, input_path: str, config: dict):
 
         job.status = "analyzing"
         job.progress = 15
+        logger.info(f"Job {job_id}: analyzing audio")
         await asyncio.sleep(0.5) # Give UI time to catch status
         
         total_duration = sc.get_video_duration(work_file)
@@ -148,6 +152,7 @@ async def process_task(job_id: str, input_path: str, config: dict):
         
         job.status = "processing"
         job.progress = 40
+        logger.info(f"Job {job_id}: processing video")
         await asyncio.sleep(0.5)
         
         name, ext = os.path.splitext(job.filename)
@@ -184,6 +189,7 @@ async def process_task(job_id: str, input_path: str, config: dict):
         job.error = str(e)
         # We NO LONGER delete the input_path on failure. This allows the user to try again.
     finally:
+        active_tasks.pop(job_id, None)
         # Clean up the TEMPORARY sample file only
         if temp_sample_path and os.path.exists(temp_sample_path):
             try:
@@ -239,7 +245,18 @@ async def start_process(
     job.status = "starting"
     job.progress = 0
     job.error = None # Clear previous errors
-    background_tasks.add_task(process_task, job_id, job.original_path, config)
+    task = asyncio.create_task(process_task(job_id, job.original_path, config))
+    active_tasks[job_id] = task
+
+    def _log_task_result(t: asyncio.Task):
+        try:
+            exc = t.exception()
+            if exc:
+                logger.error(f"Job {job_id} crashed: {exc}")
+        except asyncio.CancelledError:
+            logger.warning(f"Job {job_id} was cancelled")
+
+    task.add_done_callback(_log_task_result)
     return {"status": "started", "job_id": job_id}
 
 @app.delete("/job/{job_id}")

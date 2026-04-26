@@ -32,14 +32,29 @@ PRESETS = {
 class SilenceCut:
     def __init__(self, config):
         self.config = config
-        self.ffmpeg_path = "ffmpeg"
+        self.ffmpeg_path = self._resolve_binary("ffmpeg")
+        self.ffprobe_path = self._resolve_binary("ffprobe")
         self._check_ffmpeg()
+
+    def _resolve_binary(self, name):
+        candidates = [
+            shutil.which(name),
+            f"/opt/homebrew/bin/{name}",
+            f"/usr/local/bin/{name}",
+        ]
+        for candidate in candidates:
+            if candidate and os.path.exists(candidate) and os.access(candidate, os.X_OK):
+                return candidate
+        return name
 
     def _check_ffmpeg(self):
         try:
             subprocess.run([self.ffmpeg_path, "-version"], capture_output=True, check=True)
         except (subprocess.CalledProcessError, FileNotFoundError):
-            logger.error("FFmpeg not found. Please install FFmpeg and add it to your PATH.")
+            logger.error(
+                "FFmpeg not found. Please install FFmpeg or make it available in PATH. "
+                f"Tried: {self.ffmpeg_path}"
+            )
             sys.exit(1)
 
     def detect_silence(self, input_file):
@@ -68,7 +83,7 @@ class SilenceCut:
 
     def get_video_duration(self, input_file):
         cmd = [
-            "ffprobe", "-v", "error", "-show_entries", "format=duration",
+            self.ffprobe_path, "-v", "error", "-show_entries", "format=duration",
             "-of", "default=noprint_wrappers=1:nokey=1", input_file
         ]
         result = subprocess.run(cmd, capture_output=True, text=True)
